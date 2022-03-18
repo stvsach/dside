@@ -1,0 +1,10 @@
+LICENSE
+README.md
+setup.py
+src/dside/DSI.py
+src/dside/__init__.py
+src/dside.egg-info/PKG-INFO
+src/dside.egg-info/SOURCES.txt
+src/dside.egg-info/dependency_links.txt
+src/dside.egg-info/requires.txt
+src/dside.egg-info/top_level.txt

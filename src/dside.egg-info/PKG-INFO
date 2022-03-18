@@ -1,0 +1,29 @@
+Metadata-Version: 2.1
+Name: dside
+Version: 0.1.1
+Summary: Design space identification tool for plotting and analysing design spaces (2D and 3D).
+Home-page: https://github.com/stvsach/dside
+Author: Steven Sachio
+Author-email: stevensachio1506@gmail.com
+License: MIT
+Platform: UNKNOWN
+Classifier: Development Status :: 2 - Pre-Alpha
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Intended Audience :: Education
+Requires-Python: >=3.9
+License-File: LICENSE
+
+# dside
+Design space identification tool for plotting and analysing design spaces (2D and 3D).
+
+
+## Installation
+Currently, dside requires pandas, numpy, matplotlib, and matlab engine (for alphashapes). dside can be installd with the following commands.
+```bash
+pip install dside
+```
+For more information on how to install matlab engine please checkout this link: https://uk.mathworks.com/help/matlab/matlab_external/install-the-matlab-engine-for-python.html.
+
+
