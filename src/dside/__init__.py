@@ -1,4 +1,4 @@
-from dside.ds3D import*
+from dside.DSI import*
 
 try:
     import matlab.engine
