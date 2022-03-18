@@ -1,4 +1,3 @@
 # .gitignore
 tests
 dist
-src\dside.egg-info
