@@ -471,9 +471,9 @@ class DSI():
                     hmv_fs_R['min']        = fs_df[opt['hmv']].min()
                     hmv_fs_R['min_sample'] = fs_df[fs_df[opt['hmv']] == hmv_fs_R['min']]
                     hmv_fs_R['fs_all_samples'] = fs_df
-            fs_R = {'rmax': rmax, 'rmin': rmin, 'space_size': fs_size, 'plusmin': plusmin, 'nosam': fs_df.shape[0], 
-                    'hmv': hmv_fs_R, 'hmv_sam_flag': no_samples_flag}    
-            self.report.update({'fs': fs_R})        
+                fs_R = {'rmax': rmax, 'rmin': rmin, 'space_size': fs_size, 'plusmin': plusmin, 'nosam': fs_df.shape[0], 
+                        'hmv': hmv_fs_R, 'hmv_sam_flag': no_samples_flag}    
+                self.report.update({'fs': fs_R})        
         
         if (opt['hmv'] == 'None') or (opt['hidehmv'] == True):
             plt.legend(loc = opt['legloc'])
