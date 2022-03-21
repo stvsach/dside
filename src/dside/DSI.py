@@ -47,7 +47,7 @@ class DSI():
         self.vio = vio
         return sat, vio
     
-    def print_opt(self):
+    def help(self):
         """
         Prints ALL of the current options and return the opt dictionary.
         """
@@ -56,7 +56,7 @@ class DSI():
         except AttributeError:
             self.plot([])
         for i in list(self.opt.keys()):
-            print(f'{i:10}: {self.opt[i]:10}')
+            print(f'{i:10}: {self.opt[i]}')
         return self.opt
     
     def plot(self, vnames, opt = {}):
