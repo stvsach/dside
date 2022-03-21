@@ -1,3 +1,19 @@
+def qp(df, constraints, vnames, x = None, opt = None):
+    """
+    Quick plotting function. Uses the DSI class.
+    df: Pandas DataFrame containing data
+    constraints: dictionary containing name of variable and list of [lower bound, upper bound]
+    vnames: list of manipulated variable names
+    """
+    from dside import DSI
+    
+    ds = DSI(df)
+    p = ds.screen(constraints)
+    r = ds.plot(vnames, opt)
+    if x != None:
+        r = ds.flex_space(x)
+    return ds
+
 class DSI():
     """
     Design space identification framework
@@ -30,7 +46,7 @@ class DSI():
         self.cmap_opt = {'inferno80': self.inferno80, 'gray80': self.gray80}
         return None
     
-    def screening(self, constraints):
+    def screen(self, constraints):
         """
         Takes in the DataFrame, data, and dictionary, constraints, giving out the satisfied and violated DataFrame of samples
         constraints: {'output_name1': [lbd1, ubd1], 'output_name2': [lbd1, ubd2], ...}
@@ -49,12 +65,18 @@ class DSI():
     
     def help(self):
         """
-        Prints ALL of the current options and return the opt dictionary.
+        Prints usage instructions and ALL of the current options and return the opt dictionary.
         """
         try:
             len(self.opt)
         except AttributeError:
             self.plot([])
+        print('# ----- Usage Instructions ----- #')
+        print('1. ds = dside.DSI(df)         # Create instance of design space ds with data from DataFrame df')
+        print('2. p = ds.screen(constraints) # Screen the points using the constraints (dictionary)')
+        print('3. r = ds.plot(vnames)        # Plot the design space and NOR based on vnames (list of variable names for the axes)')
+        print('4. r = ds.flex_space(x)       # Plot the nominal point and flexibility region based on point x (list/numpy array)')
+        print('\n# ----- Options ----- #')
         for i in list(self.opt.keys()):
             print(f'{i:10}: {self.opt[i]}')
         return self.opt
@@ -85,6 +107,9 @@ class DSI():
             'cmap': 'inferno80',
             'hmv': 'None', # heat map variable name
             'hmvlabel': 'hmvlabel: heat map var label', # heat map variable label
+            'nplabel': 'NP',  # x label for flex space
+            'fslabel': 'FR',  # flexible region label
+            'spacelabel': 'NOR', # Label of surface/boundary
             
             # ----- Hidden Elements ----- #
             'hidehmv': False, # If True, no heat map will be plotted
@@ -113,11 +138,13 @@ class DSI():
             'spaceflag': True,            # If True, plots the surface/boundary
             'cspace': 'black',                # Color of the surface/boundary
             'alphaspace': 0.2,            # Transparency of surface/boundary
-            'spacelabel': 'NOR', # Label of surface/boundary
             
             # ----- Flex Space Parameters ----- #
-            'step_change': 1, # Step change of expanding flex space in percent
-            'fsmarker': 'x',  # Nominal point marker
+            'step_change': 1,   # Step change of expanding flex space in percent
+            'npmarker': 'x',    # Nominal point marker
+            'npcolor': 'black', # Nominal point color
+            'fsstyle': '--',     # Boundary line style
+            'fscolor': 'black', # Boundary line color
             
             # ----- Convex Hull Parameters ----- #
             'a': None,           # Alpha value -> at large alpha hull becomes convex. if set to None, MATLAB finds the smallest one
@@ -128,7 +155,7 @@ class DSI():
             self.opt[axes_label[i]] = l
         self.opt.update(opt)
         if self.opt['bw']:
-            bw_template = {'csat': 'black', 'cvio': 'black', 'fsat': 'black', 'fvio': 'white', 'cmap': 'gray80',
+            bw_template = {'csat': 'gray', 'cvio': 'gray', 'fsat': 'gray', 'fvio': 'white', 'cmap': 'gray80',
                            'msat': 'o', 'mvio': 's'}
             self.opt.update(bw_template)
         self.opt.update(opt)
@@ -337,7 +364,7 @@ class DSI():
         pc = step_change/100
         
         # ----- Plotting ----- #
-        ax.scatter(*zip(x), marker = opt['fsmarker'], color = 'black', label = 'Nominal point')
+        ax.scatter(*zip(x), marker = opt['npmarker'], color = opt['npcolor'], label = opt['nplabel'])
         if eng.inShape(shp, matlab.double(list(x))) == False:
             print('x does not lie in NOR.')
         else:
@@ -366,7 +393,7 @@ class DSI():
                 fs = fs.tolist()
                 fs.append(fs[0])
                 fs = np.array(fs)
-                plt.plot(*zip(*fs), linestyle = '--', color = 'black', label = 'Flex. region')
+                plt.plot(*zip(*fs), linestyle = opt['fsstyle'], color = opt['fscolor'], label = opt['fslabel'])
                 
             # ----- 3D space ----- #
             if dim == 3: 
