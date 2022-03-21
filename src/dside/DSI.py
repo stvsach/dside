@@ -484,20 +484,13 @@ class DSI():
         
         return self.report
     
-    def send_output(self, sfolder = 'tmp/', output_filename = 'DSI_output', appendix = True):
+    def send_output(self, output_filename = 'DSI_output.txt', appendix = True):
         """
         Send report of the DSI study as a txt file.
         """
-        import os
-        try:
-            os.makedirs(sfolder)
-        except FileExistsError:
-            pass # print('Folder already exist')
-
-
         rp = self.report
         vnames = self.vnames
-        f = open(f'{sfolder}{output_filename}.txt', 'w')
+        f = open(f'{output_filename}', 'w')
         # Headers
         f.write('Design Space Identification\n')
         f.write(f'Dataset name: {output_filename}\n\n')
