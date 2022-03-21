@@ -4,6 +4,8 @@ def qp(df, constraints, vnames, x = None, opt = None):
     df: Pandas DataFrame containing data
     constraints: dictionary containing name of variable and list of [lower bound, upper bound]
     vnames: list of manipulated variable names
+    x: list of nominal point for flexible space analysis
+    opt: options for the lotting
     """
     from dside import DSI
     
