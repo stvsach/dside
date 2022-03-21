@@ -1,5 +1,7 @@
+.gitignore
 LICENSE
 README.md
+requirements.txt
 setup.py
 src/dside/DSI.py
 src/dside/__init__.py
