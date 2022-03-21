@@ -366,7 +366,7 @@ class DSI():
         # ----- Plotting ----- #
         ax.scatter(*zip(x), marker = opt['npmarker'], color = opt['npcolor'], label = opt['nplabel'])
         if eng.inShape(shp, matlab.double(list(x))) == False:
-            print('x does not lie in NOR.')
+            print('x is not inside NOR.')
         else:
             # ----- 2D space ----- #
             if dim == 2:
@@ -435,34 +435,34 @@ class DSI():
                     plt.plot(*zip(*i[:-1]), color = 'black')
                 plt.plot(*zip(*faces[-1]), color = 'black', label = 'Flex. region')
 
-        # ----- KPIs ----- #
-        rmax = fs.max(axis = 0)
-        rmin = fs.min(axis = 0)
-        fs_size = (rmax - rmin).prod()
-        plusmin = (rmax - rmin)/2
+            # ----- KPIs ----- #
+            rmax = fs.max(axis = 0)
+            rmin = fs.min(axis = 0)
+            fs_size = (rmax - rmin).prod()
+            plusmin = (rmax - rmin)/2
         
-        # ----- Heat map variable ----- #
-        hmv_fs_R = {'name': opt['hmv'], 'mean': '-', 'max': '-', 'max_sample': '-', 'min': '-',  'min_sample': '-', 'fs_all_samples': '-'}
-        no_samples_flag = False
-        if opt['hmv'] != 'None':
-            fs_df = sat.copy()
-            for i in range(dim):
-                fs_df = fs_df[fs_df[vnames[i]] <= rmax[i]]
-            for i in range(dim):
-                fs_df = fs_df[fs_df[vnames[i]] >= rmin[i]]
-            if fs_df.shape[0] == 0:
-                print('No samples inside flexibility cube available.')
-                no_samples_flag = True
-            if no_samples_flag == False:
-                hmv_fs_R['mean']       = fs_df[opt['hmv']].mean()
-                hmv_fs_R['max']        = fs_df[opt['hmv']].max()
-                hmv_fs_R['max_sample'] = fs_df[fs_df[opt['hmv']] == hmv_fs_R['max']]
-                hmv_fs_R['min']        = fs_df[opt['hmv']].min()
-                hmv_fs_R['min_sample'] = fs_df[fs_df[opt['hmv']] == hmv_fs_R['min']]
-                hmv_fs_R['fs_all_samples'] = fs_df
-        fs_R = {'rmax': rmax, 'rmin': rmin, 'space_size': fs_size, 'plusmin': plusmin, 'nosam': fs_df.shape[0], 
-                'hmv': hmv_fs_R, 'hmv_sam_flag': no_samples_flag}    
-        self.report.update({'fs': fs_R})        
+            # ----- Heat map variable ----- #
+            hmv_fs_R = {'name': opt['hmv'], 'mean': '-', 'max': '-', 'max_sample': '-', 'min': '-',  'min_sample': '-', 'fs_all_samples': '-'}
+            no_samples_flag = False
+            if opt['hmv'] != 'None':
+                fs_df = sat.copy()
+                for i in range(dim):
+                    fs_df = fs_df[fs_df[vnames[i]] <= rmax[i]]
+                for i in range(dim):
+                    fs_df = fs_df[fs_df[vnames[i]] >= rmin[i]]
+                if fs_df.shape[0] == 0:
+                    print('No samples inside flexibility cube available.')
+                    no_samples_flag = True
+                if no_samples_flag == False:
+                    hmv_fs_R['mean']       = fs_df[opt['hmv']].mean()
+                    hmv_fs_R['max']        = fs_df[opt['hmv']].max()
+                    hmv_fs_R['max_sample'] = fs_df[fs_df[opt['hmv']] == hmv_fs_R['max']]
+                    hmv_fs_R['min']        = fs_df[opt['hmv']].min()
+                    hmv_fs_R['min_sample'] = fs_df[fs_df[opt['hmv']] == hmv_fs_R['min']]
+                    hmv_fs_R['fs_all_samples'] = fs_df
+            fs_R = {'rmax': rmax, 'rmin': rmin, 'space_size': fs_size, 'plusmin': plusmin, 'nosam': fs_df.shape[0], 
+                    'hmv': hmv_fs_R, 'hmv_sam_flag': no_samples_flag}    
+            self.report.update({'fs': fs_R})        
         
         if (opt['hmv'] == 'None') or (opt['hidehmv'] == True):
             plt.legend(loc = opt['legloc'])
