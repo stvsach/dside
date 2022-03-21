@@ -10,7 +10,7 @@ pip install dside
 For more information on how to install matlab engine please checkout this link: https://uk.mathworks.com/help/matlab/matlab_external/install-the-matlab-engine-for-python.html.
 
 ## Quick Overview
-Use this tool to visualize 2D and 3D design spaces.
+Use this tool to visualize 2D and 3D design spaces, calculate NOR, and flexibility spaces.
 
 ```
 import dside
@@ -19,3 +19,6 @@ p = ds.screen(constraints) # Screen the points using the constraints (dictionary
 r = ds.plot(vnames)        # Plot the design space and NOR based on vnames (list of variable names for the axes)
 r = ds.flex_space(x)       # Plot the nominal point and flexibility region based on point x (list/numpy array)
 ```
+
+![image](https://github.com/stvsach/dside/blob/master/Fig/2D.jpg)
+![image](https://github.com/stvsach/dside/blob/master/Fig/3D.jpg)
