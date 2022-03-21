@@ -1,3 +1,6 @@
+from lib2to3.pgen2.pgen import DFAState
+
+
 def qp(df, constraints, vnames, x = None, opt = None):
     """
     Quick plotting function. Uses the DSI class.
@@ -455,6 +458,7 @@ class DSI():
             # ----- Heat map variable ----- #
             hmv_fs_R = {'name': opt['hmv'], 'mean': '-', 'max': '-', 'max_sample': '-', 'min': '-',  'min_sample': '-', 'fs_all_samples': '-'}
             no_samples_flag = False
+            fs_df = df.copy()
             if opt['hmv'] != 'None':
                 fs_df = sat.copy()
                 for i in range(dim):
@@ -471,9 +475,9 @@ class DSI():
                     hmv_fs_R['min']        = fs_df[opt['hmv']].min()
                     hmv_fs_R['min_sample'] = fs_df[fs_df[opt['hmv']] == hmv_fs_R['min']]
                     hmv_fs_R['fs_all_samples'] = fs_df
-                fs_R = {'rmax': rmax, 'rmin': rmin, 'space_size': fs_size, 'plusmin': plusmin, 'nosam': fs_df.shape[0], 
-                        'hmv': hmv_fs_R, 'hmv_sam_flag': no_samples_flag}    
-                self.report.update({'fs': fs_R})        
+            fs_R = {'rmax': rmax, 'rmin': rmin, 'space_size': fs_size, 'plusmin': plusmin, 'nosam': fs_df.shape[0], 
+                    'hmv': hmv_fs_R, 'hmv_sam_flag': no_samples_flag}    
+            self.report.update({'fs': fs_R})        
         
         if (opt['hmv'] == 'None') or (opt['hidehmv'] == True):
             plt.legend(loc = opt['legloc'])
@@ -516,9 +520,11 @@ class DSI():
         f.write(f'DS Minimum {rp["hmv"]["name"]}: {rp["hmv"]["min"]:12}\n')
         f.write(f'\n-------------------------------------------------------------------------\n')
         f.write(f'Detailed maximum point: \n')
-        f.write(f'{rp["hmv"]["max_sample"].to_string()}\n\n')
+        if type(rp["hmv"]["max_sample"]) != str:
+            f.write(f'{rp["hmv"]["max_sample"].to_string()}\n\n')
         f.write(f'Detailed minimum point: \n')
-        f.write(f'{rp["hmv"]["min_sample"].to_string()}')
+        if type(rp["hmv"]["min_sample"]) != str:
+            f.write(f'{rp["hmv"]["min_sample"].to_string()}')
         f.write(f'\n-------------------------------------------------------------------------\n')
 
         if len(self.all_x) != 0:
@@ -545,11 +551,14 @@ class DSI():
                         f.write(f'DS Minimum {rp["fs"]["hmv"]["name"]}: {rp["fs"]["hmv"]["min"]:12}\n')
                         f.write(f'\n-------------------------------------------------------------------------\n')
                         f.write(f'Detailed maximum point: \n')
-                        f.write(f'{rp["fs"]["hmv"]["max_sample"].to_string()}\n\n')
+                        if type(rp["fs"]["hmv"]["max_sample"]) != str:
+                            f.write(f'{rp["fs"]["hmv"]["max_sample"].to_string()}\n\n')
                         f.write(f'Detailed minimum point: \n')
-                        f.write(f'{rp["fs"]["hmv"]["min_sample"].to_string()}')
+                        if type(rp["fs"]["hmv"]["min_sample"]) != str:
+                            f.write(f'{rp["fs"]["hmv"]["min_sample"].to_string()}')
                         f.write(f'\nAll samples inside flexibility cube: \n')
-                        f.write(f'{rp["fs"]["hmv"]["fs_all_samples"].to_string()}')
+                        if type(rp["fs"]["hmv"]["fs_all_samples"]) != str:
+                            f.write(f'{rp["fs"]["hmv"]["fs_all_samples"].to_string()}')
                         f.write(f'\n-------------------------------------------------------------------------\n')
 
         if appendix:
