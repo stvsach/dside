@@ -115,6 +115,7 @@ class DSI():
             'hidehmv': False, # If True, no heat map will be plotted
             'hidesat': False, # If True, no satisfied variables will be plotted
             'hidevio': False, # If True, no violated variables will be plotted
+            'hidenor': False, # If True, hides the surface/boundary
             
             # ----- Plot Format ----- #
             'fs': (6, 4),        # Figure size
@@ -133,9 +134,9 @@ class DSI():
             'elev': 20,          # Elevation of 3D plot
             'azim': -70,         # Azimuth of 3D plot
             'limfactor': 0.05,   # Axes limit factor based on range of axes
+            'axeslimdf': 'df',   # Data used to calculate axes limits ('sat', 'vio', 'df', or 'best')
             
             # ----- Space Format ----- #
-            'spaceflag': True,            # If True, plots the surface/boundary
             'cspace': 'black',                # Color of the surface/boundary
             'alphaspace': 0.2,            # Transparency of surface/boundary
             
@@ -226,31 +227,39 @@ class DSI():
                     ax.scatter(*zip(*vio[vnames].to_numpy()), marker = opt['mvio'], label = opt['lvio'], color = cmap(norm(vio[opt['hmv']])), alpha = opt['alpha'])
         
         # ----- Design space surface/boundary ----- #
-        space_size, bF, P, shp = self.envelope(opt['a'])
-        if dim == 2:
-            for i in range(bF.shape[0]):
-                if i == 0:
-                    plt.plot(P[bF][i][:, 0], P[bF][i][:, 1], color = opt['cspace'], label = opt['spacelabel'])
-                else:
-                    plt.plot(P[bF][i][:, 0], P[bF][i][:, 1], color = opt['cspace'])
-            
-        if dim == 3:
-            surf = ax.plot_trisurf(*zip(*P), triangles = bF, color = opt['cspace'], alpha = opt['alphaspace'], label = opt['spacelabel'])
-            surf._facecolors2d=surf._facecolor3d
-            surf._edgecolors2d=surf._edgecolor3d
+        if opt['hidenor'] == False:
+            space_size, bF, P, shp = self.envelope(opt['a'])
+            if dim == 2:
+                for i in range(bF.shape[0]):
+                    if i == 0:
+                        plt.plot(P[bF][i][:, 0], P[bF][i][:, 1], color = opt['cspace'], label = opt['spacelabel'])
+                    else:
+                        plt.plot(P[bF][i][:, 0], P[bF][i][:, 1], color = opt['cspace'])
+
+            if dim == 3:
+                surf = ax.plot_trisurf(*zip(*P), triangles = bF, color = opt['cspace'], alpha = opt['alphaspace'], label = opt['spacelabel'])
+                surf._facecolors2d=surf._facecolor3d
+                surf._edgecolors2d=surf._edgecolor3d
         
         # Limits for axes
-        vmax = self.df[vnames].max().to_numpy()
-        vmin = self.df[vnames].min().to_numpy()
-        vrange = vmax - vmin
-        limfactor = opt['limfactor']
-        if dim == 2:
-            plt.xlim([vmin[0] - limfactor*vrange[0], vmax[0] + limfactor*vrange[0]])
-            plt.ylim([vmin[1] - limfactor*vrange[1], vmax[1] + limfactor*vrange[1]])
-        if dim == 3:
-            ax.set_xlim([vmin[0] - limfactor*vrange[0], vmax[0] + limfactor*vrange[0]])
-            ax.set_ylim([vmin[1] - limfactor*vrange[1], vmax[1] + limfactor*vrange[1]])
-            ax.set_zlim([vmin[2] - limfactor*vrange[2], vmax[2] + limfactor*vrange[2]])
+        if opt['axeslimdf'] != 'best':
+            if opt['axeslimdf'] == 'sat':
+                axesdf = self.sat.copy()
+            elif opt['axeslimdf'] == 'vio':
+                axesdf = self.vio.copy()
+            elif opt['axeslimdf'] == 'df':
+                axesdf = self.df.copy()
+            vmax = axesdf[vnames].max().to_numpy()
+            vmin = axesdf[vnames].min().to_numpy()
+            vrange = vmax - vmin
+            limfactor = opt['limfactor']
+            if dim == 2:
+                plt.xlim([vmin[0] - limfactor*vrange[0], vmax[0] + limfactor*vrange[0]])
+                plt.ylim([vmin[1] - limfactor*vrange[1], vmax[1] + limfactor*vrange[1]])
+            if dim == 3:
+                ax.set_xlim([vmin[0] - limfactor*vrange[0], vmax[0] + limfactor*vrange[0]])
+                ax.set_ylim([vmin[1] - limfactor*vrange[1], vmax[1] + limfactor*vrange[1]])
+                ax.set_zlim([vmin[2] - limfactor*vrange[2], vmax[2] + limfactor*vrange[2]])
         
         
         # Labels
@@ -432,8 +441,8 @@ class DSI():
                         [fs[7], fs[3], fs[0], fs[2], fs[7]],
                         [fs[2], fs[4], fs[5], fs[7], fs[2]]]
                 for i in faces:
-                    plt.plot(*zip(*i[:-1]), color = 'black')
-                plt.plot(*zip(*faces[-1]), color = 'black', label = 'Flex. region')
+                    plt.plot(*zip(*i[:-1]), color = opt['fscolor'])
+                plt.plot(*zip(*faces[-1]), color = opt['fscolor'], label = opt['fslabel'])
 
             # ----- KPIs ----- #
             rmax = fs.max(axis = 0)
