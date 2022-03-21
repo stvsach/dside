@@ -338,72 +338,75 @@ class DSI():
         
         # ----- Plotting ----- #
         ax.scatter(*zip(x), marker = opt['fsmarker'], color = 'black', label = 'Nominal point')
-        # ----- 2D space ----- #
-        if dim == 2:
-            flag = False
-            while flag == False: # Going outwards
-                fsi   = np.array([[x[0] - pc*inputs_range[0], x[1] - pc*inputs_range[1]],
-                                  [x[0] - pc*inputs_range[0], x[1] + pc*inputs_range[1]],
-                                  [x[0] + pc*inputs_range[0], x[1] + pc*inputs_range[1]],
-                                  [x[0] + pc*inputs_range[0], x[1] - pc*inputs_range[1]]])
-                flag = False in [eng.inShape(shp, matlab.double(list(fsi[i]))) for i in range(fsi.shape[0])]
-                pc += step_change/100
+        if eng.inShape(shp, matlab.double(list(x))) == False:
+            print('x does not lie in NOR.')
+        else:
+            # ----- 2D space ----- #
+            if dim == 2:
+                flag = False
+                while flag == False: # Going outwards
+                    fsi   = np.array([[x[0] - pc*inputs_range[0], x[1] - pc*inputs_range[1]],
+                                    [x[0] - pc*inputs_range[0], x[1] + pc*inputs_range[1]],
+                                    [x[0] + pc*inputs_range[0], x[1] + pc*inputs_range[1]],
+                                    [x[0] + pc*inputs_range[0], x[1] - pc*inputs_range[1]]])
+                    flag = False in [eng.inShape(shp, matlab.double(list(fsi[i]))) for i in range(fsi.shape[0])]
+                    pc += step_change/100
 
-            pc = (step_change/100)/100
-            flag = True
-            while flag == True: # Going inwards
-                fs = [[fsi[0, 0] + pc*inputs_range[0], fsi[0, 1] + pc*inputs_range[1]],
-                      [fsi[1, 0] + pc*inputs_range[0], fsi[1, 1] - pc*inputs_range[1]],
-                      [fsi[2, 0] - pc*inputs_range[0], fsi[2, 1] - pc*inputs_range[1]],
-                      [fsi[3, 0] - pc*inputs_range[0], fsi[3, 1] + pc*inputs_range[1]]]
+                pc = (step_change/100)/100
+                flag = True
+                while flag == True: # Going inwards
+                    fs = [[fsi[0, 0] + pc*inputs_range[0], fsi[0, 1] + pc*inputs_range[1]],
+                        [fsi[1, 0] + pc*inputs_range[0], fsi[1, 1] - pc*inputs_range[1]],
+                        [fsi[2, 0] - pc*inputs_range[0], fsi[2, 1] - pc*inputs_range[1]],
+                        [fsi[3, 0] - pc*inputs_range[0], fsi[3, 1] + pc*inputs_range[1]]]
+                    fs = np.array(fs)
+                    flag = False in [eng.inShape(shp, matlab.double(list(fs[i]))) for i in range(fs.shape[0])]
+                    pc += (step_change/100)/100
+                    
+                fs = fs.tolist()
+                fs.append(fs[0])
                 fs = np.array(fs)
-                flag = False in [eng.inShape(shp, matlab.double(list(fs[i]))) for i in range(fs.shape[0])]
-                pc += (step_change/100)/100
+                plt.plot(*zip(*fs), linestyle = '--', color = 'black', label = 'Flex. region')
                 
-            fs = fs.tolist()
-            fs.append(fs[0])
-            fs = np.array(fs)
-            plt.plot(*zip(*fs), linestyle = '--', color = 'black', label = 'Flex. region')
-            
-        # ----- 3D space ----- #
-        if dim == 3: 
-            flag = False
-            while flag == False: # Going outwards
-                fsi = np.array([[x[0] - pc*inputs_range[0], x[1] - pc*inputs_range[1], x[2] - pc*inputs_range[2]],
-                                [x[0] + pc*inputs_range[0], x[1] - pc*inputs_range[1], x[2] - pc*inputs_range[2]],
-                                [x[0] - pc*inputs_range[0], x[1] + pc*inputs_range[1], x[2] - pc*inputs_range[2]],
-                                [x[0] - pc*inputs_range[0], x[1] - pc*inputs_range[1], x[2] + pc*inputs_range[2]],
-                                [x[0] + pc*inputs_range[0], x[1] + pc*inputs_range[1], x[2] - pc*inputs_range[2]],
-                                [x[0] + pc*inputs_range[0], x[1] + pc*inputs_range[1], x[2] + pc*inputs_range[2]],
-                                [x[0] + pc*inputs_range[0], x[1] - pc*inputs_range[1], x[2] + pc*inputs_range[2]],
-                                [x[0] - pc*inputs_range[0], x[1] + pc*inputs_range[1], x[2] + pc*inputs_range[2]]])
-                flag = False in [eng.inShape(shp, matlab.double(list(fsi[i]))) for i in range(fsi.shape[0])]
-                pc += step_change/100
+            # ----- 3D space ----- #
+            if dim == 3: 
+                flag = False
+                while flag == False: # Going outwards
+                    fsi = np.array([[x[0] - pc*inputs_range[0], x[1] - pc*inputs_range[1], x[2] - pc*inputs_range[2]],
+                                    [x[0] + pc*inputs_range[0], x[1] - pc*inputs_range[1], x[2] - pc*inputs_range[2]],
+                                    [x[0] - pc*inputs_range[0], x[1] + pc*inputs_range[1], x[2] - pc*inputs_range[2]],
+                                    [x[0] - pc*inputs_range[0], x[1] - pc*inputs_range[1], x[2] + pc*inputs_range[2]],
+                                    [x[0] + pc*inputs_range[0], x[1] + pc*inputs_range[1], x[2] - pc*inputs_range[2]],
+                                    [x[0] + pc*inputs_range[0], x[1] + pc*inputs_range[1], x[2] + pc*inputs_range[2]],
+                                    [x[0] + pc*inputs_range[0], x[1] - pc*inputs_range[1], x[2] + pc*inputs_range[2]],
+                                    [x[0] - pc*inputs_range[0], x[1] + pc*inputs_range[1], x[2] + pc*inputs_range[2]]])
+                    flag = False in [eng.inShape(shp, matlab.double(list(fsi[i]))) for i in range(fsi.shape[0])]
+                    pc += step_change/100
 
-            pc = (step_change/100)/100
-            flag = True
-            while flag == True: # Going inwards
-                fs = [[fsi[0, 0] + pc*inputs_range[0], fsi[0, 1] + pc*inputs_range[1], fsi[0, 2] + pc*inputs_range[2]],
-                      [fsi[1, 0] - pc*inputs_range[0], fsi[1, 1] + pc*inputs_range[1], fsi[1, 2] + pc*inputs_range[2]],
-                      [fsi[2, 0] + pc*inputs_range[0], fsi[2, 1] - pc*inputs_range[1], fsi[2, 2] + pc*inputs_range[2]],
-                      [fsi[3, 0] + pc*inputs_range[0], fsi[3, 1] + pc*inputs_range[1], fsi[3, 2] - pc*inputs_range[2]],
-                      [fsi[4, 0] - pc*inputs_range[0], fsi[4, 1] - pc*inputs_range[1], fsi[4, 2] + pc*inputs_range[2]],
-                      [fsi[5, 0] - pc*inputs_range[0], fsi[5, 1] - pc*inputs_range[1], fsi[5, 2] - pc*inputs_range[2]],
-                      [fsi[6, 0] - pc*inputs_range[0], fsi[6, 1] + pc*inputs_range[1], fsi[6, 2] - pc*inputs_range[2]],
-                      [fsi[7, 0] + pc*inputs_range[0], fsi[7, 1] - pc*inputs_range[1], fsi[7, 2] - pc*inputs_range[2]]]
-                fs = np.array(fs)
-                flag = False in [eng.inShape(shp, matlab.double(list(fs[i]))) for i in range(fs.shape[0])]
-                pc += (step_change/100)/100
-                
-            faces = [[fs[0], fs[1], fs[4], fs[2], fs[0]],
-                     [fs[0], fs[3], fs[6], fs[1], fs[0]],
-                     [fs[3], fs[7], fs[5], fs[6], fs[3]], 
-                     [fs[6], fs[1], fs[4], fs[5], fs[6]],
-                     [fs[7], fs[3], fs[0], fs[2], fs[7]],
-                     [fs[2], fs[4], fs[5], fs[7], fs[2]]]
-            for i in faces:
-                plt.plot(*zip(*i[:-1]), color = 'black')
-            plt.plot(*zip(*faces[-1]), color = 'black', label = 'Flex. region')
+                pc = (step_change/100)/100
+                flag = True
+                while flag == True: # Going inwards
+                    fs = [[fsi[0, 0] + pc*inputs_range[0], fsi[0, 1] + pc*inputs_range[1], fsi[0, 2] + pc*inputs_range[2]],
+                        [fsi[1, 0] - pc*inputs_range[0], fsi[1, 1] + pc*inputs_range[1], fsi[1, 2] + pc*inputs_range[2]],
+                        [fsi[2, 0] + pc*inputs_range[0], fsi[2, 1] - pc*inputs_range[1], fsi[2, 2] + pc*inputs_range[2]],
+                        [fsi[3, 0] + pc*inputs_range[0], fsi[3, 1] + pc*inputs_range[1], fsi[3, 2] - pc*inputs_range[2]],
+                        [fsi[4, 0] - pc*inputs_range[0], fsi[4, 1] - pc*inputs_range[1], fsi[4, 2] + pc*inputs_range[2]],
+                        [fsi[5, 0] - pc*inputs_range[0], fsi[5, 1] - pc*inputs_range[1], fsi[5, 2] - pc*inputs_range[2]],
+                        [fsi[6, 0] - pc*inputs_range[0], fsi[6, 1] + pc*inputs_range[1], fsi[6, 2] - pc*inputs_range[2]],
+                        [fsi[7, 0] + pc*inputs_range[0], fsi[7, 1] - pc*inputs_range[1], fsi[7, 2] - pc*inputs_range[2]]]
+                    fs = np.array(fs)
+                    flag = False in [eng.inShape(shp, matlab.double(list(fs[i]))) for i in range(fs.shape[0])]
+                    pc += (step_change/100)/100
+                    
+                faces = [[fs[0], fs[1], fs[4], fs[2], fs[0]],
+                        [fs[0], fs[3], fs[6], fs[1], fs[0]],
+                        [fs[3], fs[7], fs[5], fs[6], fs[3]], 
+                        [fs[6], fs[1], fs[4], fs[5], fs[6]],
+                        [fs[7], fs[3], fs[0], fs[2], fs[7]],
+                        [fs[2], fs[4], fs[5], fs[7], fs[2]]]
+                for i in faces:
+                    plt.plot(*zip(*i[:-1]), color = 'black')
+                plt.plot(*zip(*faces[-1]), color = 'black', label = 'Flex. region')
 
         # ----- KPIs ----- #
         rmax = fs.max(axis = 0)
