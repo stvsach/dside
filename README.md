@@ -1,5 +1,5 @@
 # dside
-Design space identification tool for plotting and analysing design spaces (2D and 3D).
+Design space identification tool for plotting and analysing design spaces (2D and 3D). Constraints with respect to key performance indicators (KPIs) are used to categorize the samples. Convex hull algorithm (alpha shape on MATLAB) is used to identify normal operating region (NOR) and quantifying the size of the region. Given nominal point, a flexible region can be quantified to find the maximum uniform allowable disturbance that the process can still handle while satisfying all constraints.
 
 
 ## Installation
