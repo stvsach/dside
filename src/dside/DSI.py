@@ -1,5 +1,28 @@
 from lib2to3.pgen2.pgen import DFAState
 
+def get_at_time(df, t, time_label = 'Time'):
+    """
+    Slice df which is a multi index dataframe
+    use this function to get the element at time t of each sample
+    if t = -1 then it will be the last element
+    """
+    import numpy as np
+    import pandas as pd
+    dft = {}
+    sample_index = list(df.index.levels[0])
+    no_sams = len(sample_index)
+
+    if t == -1:
+        for i in range(no_sams):
+            dft[i] = df.loc[i].iloc[-1]
+    else:
+        for i in range(no_sams):
+            sliced = df.loc[i][df.loc[i][time_label].round() == np.round(t)]
+            if sliced.size == 0:
+                pass
+            else:
+                dft[i] = sliced.iloc[0]
+    return pd.DataFrame(dft).T
 
 def qp(df, constraints, vnames, x = None, opt = None):
     """
