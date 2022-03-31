@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: dside
-Version: 0.1.2
+Version: 0.1.3
 Summary: Design space identification tool for plotting and analysing design spaces (2D and 3D).
 Home-page: https://github.com/stvsach/dside
 Author: Steven Sachio
@@ -16,7 +16,7 @@ Requires-Python: >=3.9
 License-File: LICENSE
 
 # dside
-Design space identification tool for plotting and analysing design spaces (2D and 3D).
+Design space identification tool for plotting and analysing design spaces (2D and 3D). Constraints with respect to key performance indicators (KPIs) are used to categorize the samples. Convex hull algorithm (alpha shape on MATLAB) is used to identify normal operating region (NOR) and quantifying the size of the region. Given nominal point, a flexible region can be quantified to find the maximum uniform allowable disturbance that the process can still handle while satisfying all constraints.
 
 
 ## Installation
@@ -27,7 +27,7 @@ pip install dside
 For more information on how to install matlab engine please checkout this link: https://uk.mathworks.com/help/matlab/matlab_external/install-the-matlab-engine-for-python.html.
 
 ## Quick Overview
-Use this tool to visualize 2D and 3D design spaces.
+Use this tool to visualize 2D and 3D design spaces, calculate NOR, and flexibility spaces.
 
 ```
 import dside
@@ -37,4 +37,6 @@ r = ds.plot(vnames)        # Plot the design space and NOR based on vnames (list
 r = ds.flex_space(x)       # Plot the nominal point and flexibility region based on point x (list/numpy array)
 ```
 
+![image](https://github.com/stvsach/dside/blob/master/Fig/2D.jpg)
+![image](https://github.com/stvsach/dside/blob/master/Fig/3D.jpg)
 
