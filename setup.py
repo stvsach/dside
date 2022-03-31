@@ -12,6 +12,7 @@ setup(
     author_email = 'stevensachio1506@gmail.com',
     description = short_description,
     long_description = long_description,
+    long_description_content_type="text/markdown",
     license = 'MIT',
     url = 'https://github.com/stvsach/dside',
     classifiers=[
