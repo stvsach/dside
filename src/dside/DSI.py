@@ -124,12 +124,12 @@ class DSI():
             'step_change': 1,   # Step change of expanding flex space in percent
             'npmarker': 'x',    # Nominal point marker
             'npcolor': 'black', # Nominal point color
-            'fsstyle': '--',     # Boundary line style
+            'fsstyle': '--',    # Boundary line style
             'fscolor': 'black', # Boundary line color
             
             # ----- Convex Hull Parameters ----- #
-            'a': None,           # Alpha value -> at large alpha hull becomes convex. if set to None, MATLAB finds the smallest one
-            'amul': 1,           # Alpha multiplier value (wrt to product of mean axes)
+            'a': None, # Alpha value -> at large alpha hull becomes convex. if set to 'critical', MATLAB finds the smallest one. if None: use mean of bounds of dimensions
+            'amul': 1, # Alpha multiplier value (wrt to product of mean axes)
         }
         self.opt = self.default_opt.copy()
         return None
@@ -329,8 +329,10 @@ class DSI():
         points = sat[vnames].to_numpy()
         
         ew['points'] = matlab.double(points.tolist()) 
-        if a == None:
-            a = pd.concat([sat, vio], axis = 0)[vnames].max().product()*opt['amul']
+        if a == 'critical':
+            shp = ev(f"alphaShape(points)", nargout = 1)
+        elif a == None:
+            a = pd.concat([sat, vio], axis = 0)[vnames].mean().product()*opt['amul']
             shp = ev(f"alphaShape(points, {a})", nargout = 1)
         else:
             shp = ev(f"alphaShape(points, {a})", nargout = 1)
