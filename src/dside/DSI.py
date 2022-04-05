@@ -141,6 +141,13 @@ class DSI():
         self.opt = self.default_opt.copy()
         return None
     
+    def update_opt(self, new_opt):
+        """
+        Update current self.opt from contents of new_opt dictionary.
+        """
+        self.opt.update(new_opt)
+        return None
+        
     def screen(self, constraints):
         """
         Takes in the DataFrame, data, and dictionary, constraints, giving out the satisfied and violated DataFrame of samples
