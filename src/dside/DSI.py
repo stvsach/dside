@@ -72,57 +72,9 @@ class DSI():
         self.inferno80   = ListedColormap(inferno_modified(np.linspace(0, 0.8, 256)))
         self.gray80      = ListedColormap(gray_modified(np.linspace(0, 0.85, 256)))
         self.cmap_opt = {'inferno80': self.inferno80, 'gray80': self.gray80}
-        return None
-    
-    def screen(self, constraints):
-        """
-        Takes in the DataFrame, data, and dictionary, constraints, giving out the satisfied and violated DataFrame of samples
-        constraints: {'output_name1': [lbd1, ubd1], 'output_name2': [lbd1, ubd2], ...}
-        """
-        data = self.df
-        self.constraints = constraints
-        sat = data.copy()
-        for i in list(constraints.keys()):
-            sat = sat[sat[i] >= constraints[i][0]]
-            sat = sat[sat[i] <= constraints[i][1]]
-        exclude_these = data.index.isin(list(sat.index))
-        vio = data[~exclude_these]
-        self.sat = sat
-        self.vio = vio
-        return sat, vio
-    
-    def help(self):
-        """
-        Prints usage instructions and ALL of the current options and return the opt dictionary.
-        """
-        try:
-            len(self.opt)
-        except AttributeError:
-            self.plot([])
-        print('# ----- Usage Instructions ----- #')
-        print('1. ds = dside.DSI(df)         # Create instance of design space ds with data from DataFrame df')
-        print('2. p = ds.screen(constraints) # Screen the points using the constraints (dictionary)')
-        print('3. r = ds.plot(vnames)        # Plot the design space and NOR based on vnames (list of variable names for the axes)')
-        print('4. r = ds.flex_space(x)       # Plot the nominal point and flexibility region based on point x (list/numpy array)')
-        print('\n# ----- Options ----- #')
-        for i in list(self.opt.keys()):
-            print(f'{i:10}: {self.opt[i]}')
-        return self.opt
-    
-    def plot(self, vnames, opt = {}):
-        """
-        Plot either 2D or 3D design space based on satisfied and violated points.
-        vnames: ['varname1', 'varname2', 'varname3']
-        Plotting options available by passing opt which is a dictionary to update the default self.opt.
-        """
         
-        import numpy as np
-        import pandas as pd
-        import matplotlib.pyplot as plt
-        import matplotlib
-        # ------------------------------ Internal definitions ------------------------------ #
-        self.vnames = vnames
-        self.opt = {
+        # Default options
+        self.default_opt = {
             # ----- Saving Options ----- #
             'save_flag': False, # If True, then figure will be saved
             'save_name': 'test.jpg', # save file name including path
@@ -179,6 +131,60 @@ class DSI():
             'a': None,           # Alpha value -> at large alpha hull becomes convex. if set to None, MATLAB finds the smallest one
             'amul': 1,           # Alpha multiplier value (wrt to product of mean axes)
         }
+        self.opt = self.default_opt.copy()
+        return None
+    
+    def reset(self):
+        """
+        Reset options to default.
+        """
+        self.opt = self.default_opt.copy()
+        return None
+    
+    def screen(self, constraints):
+        """
+        Takes in the DataFrame, data, and dictionary, constraints, giving out the satisfied and violated DataFrame of samples
+        constraints: {'output_name1': [lbd1, ubd1], 'output_name2': [lbd1, ubd2], ...}
+        """
+        data = self.df
+        self.constraints = constraints
+        sat = data.copy()
+        for i in list(constraints.keys()):
+            sat = sat[sat[i] >= constraints[i][0]]
+            sat = sat[sat[i] <= constraints[i][1]]
+        exclude_these = data.index.isin(list(sat.index))
+        vio = data[~exclude_these]
+        self.sat = sat
+        self.vio = vio
+        return sat, vio
+    
+    def help(self):
+        """
+        Prints usage instructions and ALL of the current options and return the opt dictionary.
+        """
+        print('# ----- Usage Instructions ----- #')
+        print('1. ds = dside.DSI(df)         # Create instance of design space ds with data from DataFrame df')
+        print('2. p = ds.screen(constraints) # Screen the points using the constraints (dictionary)')
+        print('3. r = ds.plot(vnames)        # Plot the design space and NOR based on vnames (list of variable names for the axes)')
+        print('4. r = ds.flex_space(x)       # Plot the nominal point and flexibility region based on point x (list/numpy array)')
+        print('\n# ----- Options ----- #')
+        for i in list(self.opt.keys()):
+            print(f'{i:10}: {self.opt[i]}')
+        return self.opt
+    
+    def plot(self, vnames, opt = {}):
+        """
+        Plot either 2D or 3D design space based on satisfied and violated points.
+        vnames: ['varname1', 'varname2', 'varname3']
+        Plotting options available by passing opt which is a dictionary to update the default self.opt.
+        """
+        
+        import numpy as np
+        import pandas as pd
+        import matplotlib.pyplot as plt
+        import matplotlib
+        # ------------------------------ Internal definitions ------------------------------ #
+        self.vnames = vnames
         axes_label = ['xlabel', 'ylabel', 'zlabel']
         for i, l in enumerate(vnames):
             self.opt[axes_label[i]] = l
