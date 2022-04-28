@@ -425,7 +425,7 @@ class DSI():
         if eng.inShape(shp, matlab.double(list(x))) == False:
             print('x is not inside NOR.')
             not_in_region_flag = True
-            fs_R = {'FR': 'N/A', 'rmax': 'N/A', 'rmin': 'N/A', 'space_size': 'N/A', 'plusmin': 'N/A', 'nosam': 'N/A', 
+            fs_R = {'x': x, 'FR': 'N/A', 'rmax': 'N/A', 'rmin': 'N/A', 'space_size': 'N/A', 'plusmin': 'N/A', 'nosam': 'N/A', 
                     'hmv': 'N/A', 'hmv_sam_flag': 'N/A', 'not_in_region_flag': not_in_region_flag}    
         else:
             # ----- 2D space ----- #
@@ -519,7 +519,7 @@ class DSI():
                     hmv_fs_R['min']        = fs_df[opt['hmv']].min()
                     hmv_fs_R['min_sample'] = fs_df[fs_df[opt['hmv']] == hmv_fs_R['min']]
                     hmv_fs_R['fs_all_samples'] = fs_df
-            fs_R = {'FR': FR, 'rmax': rmax, 'rmin': rmin, 'space_size': fs_size, 'plusmin': plusmin, 'nosam': fs_df.shape[0], 
+            fs_R = {'x': x, 'FR': FR, 'rmax': rmax, 'rmin': rmin, 'space_size': fs_size, 'plusmin': plusmin, 'nosam': fs_df.shape[0], 
                     'hmv': hmv_fs_R, 'hmv_sam_flag': no_samples_flag, 'not_in_region_flag': not_in_region_flag}
                 
         self.all_x.update({str(x): fs_R})
@@ -602,38 +602,44 @@ class DSI():
         f.write(f'\n-------------------------------------------------------------------------\n')
 
         if len(self.all_x) != 0:
-            for i in range(len(self.all_x)):
-                x = self.all_x[i]
-                rmax = rp['fs']['rmax']
-                rmin = rp['fs']['rmin']
-                fs_size = rp['fs']['space_size']
-                plusmin = rp['fs']['plusmin']
+            for n, x_i in enumerate(list(self.all_x.keys())):
+                rep = self.all_x[x_i]
+                x = rep['x']
+                rmax = rep['rmax']
+                rmin = rep['rmin']
+                fs_size = rep['space_size']
+                plusmin = rep['plusmin']
 
                 if x != None:
-                    f.write(f'\n\n\n# ------------------------------ Flexibility Space {i+1:03} ------------------------------ #\n')
+                    f.write(f'\n\n\n# ------------------------------ Flexibility Space {n+1:03} ------------------------------ #\n')
                     f.write(f'Flexibility space point: \n')
-                    for i, vn in enumerate(vnames):
-                        f.write(f'{vn}: {x[i]:12}' + '\u00B1' + f'{plusmin[i]:12} Range: {rmax[i] - rmin[i]: 12}\n')
-                    f.write(f'Flexibility space size: {fs_size:12}\n')
-
-                    if rp['fs']['hmv_sam_flag']:
-                        f.write('No samples inside flexibility cube available.')
+                    if rep['not_in_region_flag']:
+                        for i, vn in enumerate(vnames):
+                            f.write(f'{vn}: {x[i]:12}' + '\u00B1' + f'{plusmin} Range: {rmin}\n')
+                        f.write(f'--------------- POINT IS NOT IN THE NOR ---------------\n\n')
                     else:
-                        f.write(f'\nNumber of samples inside flexibility cube: {rp["fs"]["nosam"]}\n')
-                        f.write(f'Average {rp["fs"]["hmv"]["name"]}:    {rp["fs"]["hmv"]["mean"]:12}\n')
-                        f.write(f'DS Maximum {rp["fs"]["hmv"]["name"]}: {rp["fs"]["hmv"]["max"]:12}\n')
-                        f.write(f'DS Minimum {rp["fs"]["hmv"]["name"]}: {rp["fs"]["hmv"]["min"]:12}\n')
-                        f.write(f'\n-------------------------------------------------------------------------\n')
-                        f.write(f'Detailed maximum point: \n')
-                        if type(rp["fs"]["hmv"]["max_sample"]) != str:
-                            f.write(f'{rp["fs"]["hmv"]["max_sample"].to_string()}\n\n')
-                        f.write(f'Detailed minimum point: \n')
-                        if type(rp["fs"]["hmv"]["min_sample"]) != str:
-                            f.write(f'{rp["fs"]["hmv"]["min_sample"].to_string()}')
-                        f.write(f'\nAll samples inside flexibility cube: \n')
-                        if type(rp["fs"]["hmv"]["fs_all_samples"]) != str:
-                            f.write(f'{rp["fs"]["hmv"]["fs_all_samples"].to_string()}')
-                        f.write(f'\n-------------------------------------------------------------------------\n')
+                        for i, vn in enumerate(vnames):
+                            f.write(f'{vn}: {x[i]:12}' + '\u00B1' + f'{plusmin[i]:12} Range: {rmax[i] - rmin[i]: 12}\n')
+                        f.write(f'Flexibility space size: {fs_size:12}\n')
+
+                        if rep['hmv_sam_flag']:
+                            f.write('No samples inside flexibility cube available.')
+                        else:
+                            f.write(f'\nNumber of samples inside flexibility cube: {rep["nosam"]}\n')
+                            f.write(f'Average {rep["hmv"]["name"]}:    {rep["hmv"]["mean"]:12}\n')
+                            f.write(f'DS Maximum {rep["hmv"]["name"]}: {rep["hmv"]["max"]:12}\n')
+                            f.write(f'DS Minimum {rep["hmv"]["name"]}: {rep["hmv"]["min"]:12}\n')
+                            f.write(f'\n-------------------------------------------------------------------------\n')
+                            f.write(f'Detailed maximum point: \n')
+                            if type(rep["hmv"]["max_sample"]) != str:
+                                f.write(f'{rep["hmv"]["max_sample"].to_string()}\n\n')
+                            f.write(f'Detailed minimum point: \n')
+                            if type(rep["hmv"]["min_sample"]) != str:
+                                f.write(f'{rep["hmv"]["min_sample"].to_string()}')
+                            f.write(f'\nAll samples inside flexibility cube: \n')
+                            if type(rep["hmv"]["fs_all_samples"]) != str:
+                                f.write(f'{rep["hmv"]["fs_all_samples"].to_string()}')
+                            f.write(f'\n-------------------------------------------------------------------------\n')
 
         if appendix:
             f.write('\n\n\n\n# ------------------------------ APPENDIX ------------------------------ #\n')
@@ -642,5 +648,12 @@ class DSI():
             f.write(f'\n-------------------------------------------------------------------------\n')
             f.write(f'ALL VIOLATED SAMPLES: \n')
             f.write(f'\n{self.vio.to_string()}\n\n')
+            f.write(f'# ----- Envelope (hull) ----- #\n')
+            f.write(f'Boundary Facets: \n')
+            for i in self.bF:
+                f.write(f'{str(i)}\n')
+            f.write(f'\nPoints: \n')
+            for i in self.P:
+                f.write(f'{str(i)}\n')
 
         f.close()
