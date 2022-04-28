@@ -131,9 +131,11 @@ class DSI():
             
             # ----- Hull Parameters ----- #
             'a': None, # Alpha value -> at large alpha, hull becomes convex. if set to 'critical', MATLAB finds the smallest one. if None: use mean of bounds of dimensions
-            'amul': 0.5, # Alpha multiplier value (wrt to product of mean axes)
+            'amul': 1, # Alpha multiplier value (wrt to product of mean axes)
         }
         self.opt = self.default_opt.copy()
+        self.bw_template = {'alpha': 1, 'csat': 'gray', 'cvio': 'black', 'fsat': 'gray', 'fvio': 'black', 'cmap': 'gray80',
+                           'msat': 'o', 'mvio': 'o'}
         return None
     
     def reset(self):
@@ -172,10 +174,11 @@ class DSI():
         Prints usage instructions and ALL of the current options and return the opt dictionary.
         """
         print('# ----- Usage Instructions ----- #')
-        print('1. ds = dside.DSI(df)         # Create instance of design space ds with data from DataFrame df')
-        print('2. p = ds.screen(constraints) # Screen the points using the constraints (dictionary)')
-        print('3. r = ds.plot(vnames)        # Plot the design space and NOR based on vnames (list of variable names for the axes)')
-        print('4. r = ds.flex_space(x)       # Plot the nominal point and flexibility region based on point x (list/numpy array)')
+        print('1. ds = dside.DSI(df)            # Create instance of design space ds with data from DataFrame df')
+        print('2. p = ds.screen(constraints)    # Screen the points using the constraints (dictionary)')
+        print('3. r = ds.plot(vnames)           # Plot the design space and NOR based on vnames (list of variable names for the axes)')
+        print('4. r = ds.flex_space(x)          # Plot the nominal point and flexibility region based on point x (list/numpy array)')
+        print("5. ds..send_output('output.txt') # Send out the results in detailed .txt file")
         print('\n# ----- Options ----- #')
         for i in list(self.opt.keys()):
             print(f'{i:10}: {self.opt[i]}')
@@ -197,9 +200,7 @@ class DSI():
             self.opt[axes_label[i]] = l
         self.opt.update(opt)
         if self.opt['bw']:
-            bw_template = {'csat': 'gray', 'cvio': 'gray', 'fsat': 'gray', 'fvio': 'white', 'cmap': 'gray80',
-                           'msat': 'o', 'mvio': 's'}
-            self.opt.update(bw_template)
+            self.opt.update(self.bw_template)
         self.opt.update(opt)
         
         # ------------------------------ External definitions ------------------------------ #
