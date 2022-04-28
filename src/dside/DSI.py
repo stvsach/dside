@@ -65,6 +65,7 @@ class DSI():
             'hmv': {'name': 'None', 'mean': '-', 'max': '-', 'max_sample': '-', 'min': '-',  'min_sample': '-'},
         }
         self.all_x = []
+        self.space_size = None
         
         # Set default color map for heat map plot
         inferno_modified = plt.cm.get_cmap('inferno', 256)
@@ -129,7 +130,7 @@ class DSI():
             
             # ----- Convex Hull Parameters ----- #
             'a': None, # Alpha value -> at large alpha hull becomes convex. if set to 'critical', MATLAB finds the smallest one. if None: use mean of bounds of dimensions
-            'amul': 1, # Alpha multiplier value (wrt to product of mean axes)
+            'amul': 0.5, # Alpha multiplier value (wrt to product of mean axes)
         }
         self.opt = self.default_opt.copy()
         return None
@@ -269,7 +270,10 @@ class DSI():
         
         # ----- Design space surface/boundary ----- #
         if opt['hidenor'] == False:
-            space_size, bF, P, shp = self.envelope(opt['a'])
+            if self.space_size == None:
+                self.space_size, bF, P, self.shp = self.envelope(opt)
+            bF = self.bF
+            P = self.P
             if dim == 2:
                 for i in range(bF.shape[0]):
                     if i == 0:
@@ -318,7 +322,7 @@ class DSI():
             plt.savefig(opt['save_name'], dpi = opt['save_dpi'])
         return self.report
     
-    def envelope(self, a = None):
+    def envelope(self, opt = {}):
         """
         Create convex hull using MATLAB alphashape
         """
@@ -332,14 +336,17 @@ class DSI():
         sat = self.sat
         vio = self.sat
         vnames = self.vnames
-        opt = self.opt        
+        self.opt.update(opt) 
+        opt = self.opt
+        a = opt['a']
+        amul = opt['amul']
         points = sat[vnames].to_numpy()
         
         ew['points'] = matlab.double(points.tolist()) 
         if a == 'critical':
             shp = ev(f"alphaShape(points)", nargout = 1)
         elif a == None:
-            a = pd.concat([sat, vio], axis = 0)[vnames].mean().product()*opt['amul']
+            a = pd.concat([sat, vio], axis = 0)[vnames].mean().product()*amul
             shp = ev(f"alphaShape(points, {a})", nargout = 1)
         else:
             shp = ev(f"alphaShape(points, {a})", nargout = 1)
