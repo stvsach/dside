@@ -128,8 +128,8 @@ class DSI():
             'fsstyle': '--',    # Boundary line style
             'fscolor': 'black', # Boundary line color
             
-            # ----- Convex Hull Parameters ----- #
-            'a': None, # Alpha value -> at large alpha hull becomes convex. if set to 'critical', MATLAB finds the smallest one. if None: use mean of bounds of dimensions
+            # ----- Hull Parameters ----- #
+            'a': None, # Alpha value -> at large alpha, hull becomes convex. if set to 'critical', MATLAB finds the smallest one. if None: use mean of bounds of dimensions
             'amul': 0.5, # Alpha multiplier value (wrt to product of mean axes)
         }
         self.opt = self.default_opt.copy()
@@ -271,7 +271,7 @@ class DSI():
         # ----- Design space surface/boundary ----- #
         if opt['hidenor'] == False:
             if self.space_size == None:
-                self.space_size, bF, P, self.shp = self.envelope(opt)
+                self.space_size, bF, P, self.shp = self.envelope(vnames, opt)
             bF = self.bF
             P = self.P
             if dim == 2:
@@ -322,9 +322,13 @@ class DSI():
             plt.savefig(opt['save_name'], dpi = opt['save_dpi'])
         return self.report
     
-    def envelope(self, opt = {}):
+    def envelope(self, vnames, opt = {}):
         """
-        Create convex hull using MATLAB alphashape
+        Create a hull using MATLAB alphashape
+        Depending on alpha (opt['a']) value it can be either convex/concave
+        # ----- Hull Parameters ----- #
+        'a': None, # Alpha value -> at large alpha, hull becomes convex. if set to 'critical', MATLAB finds the smallest one. if None: use mean of bounds of dimensions
+        'amul': 0.5, # Alpha multiplier value (wrt to product of mean axes)
         """
         import matlab.engine
         import numpy as np
@@ -335,7 +339,7 @@ class DSI():
         
         sat = self.sat
         vio = self.sat
-        vnames = self.vnames
+        self.opt.update({'vnames': vnames})
         self.opt.update(opt) 
         opt = self.opt
         a = opt['a']
