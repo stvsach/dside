@@ -1,3 +1,4 @@
+from ast import Str
 from lib2to3.pgen2.pgen import DFAState
 
 def get_at_time(df, t, time_label = 'Time'):
@@ -64,7 +65,7 @@ class DSI():
             'nosam': df.shape[0], 'space_size': '-',
             'hmv': {'name': 'None', 'mean': '-', 'max': '-', 'max_sample': '-', 'min': '-',  'min_sample': '-'},
         }
-        self.all_x = []
+        self.all_x = {}
         self.space_size = None
         
         # Set default color map for heat map plot
@@ -88,7 +89,7 @@ class DSI():
             'cmap': 'inferno80',
             'hmv': 'None', # heat map variable name
             'hmvlabel': 'hmvlabel: heat map var label', # heat map variable label
-            'nplabel': 'NP',  # x label for flex space
+            'nplabel': 'NOP', # Normal Operating Point: x label for flex space
             'fslabel': 'FR',  # flexible region label
             'spacelabel': 'NOR', # Label of surface/boundary
             
@@ -186,8 +187,6 @@ class DSI():
         vnames: ['varname1', 'varname2', 'varname3']
         Plotting options available by passing opt which is a dictionary to update the default self.opt.
         """
-        
-        import numpy as np
         import pandas as pd
         import matplotlib.pyplot as plt
         import matplotlib
@@ -398,24 +397,20 @@ class DSI():
                 ax.azim += 0.5
                 plt.savefig(f'{sfolder}{sname}_frame_{leading_no + ii:04}.png', dpi = sdpi)
     
-    def flex_space(self, x):
+    def check_point(self, x):
         """
-        Plot the flexibility space
+        Checks whether point x lies within the hull or not.
         """
         import numpy as np
-        import matplotlib.pyplot as plt
         import matlab.engine
+        import matplotlib.pyplot as plt
         eng = matlab.engine.start_matlab() # Start instance of matlab engine
-        ev = eng.eval
-        ew = eng.workspace
         
-        self.all_x.append(x)
-        
-        ax = self.ax
         shp = self.shp
+        vnames = self.vnames
         opt = self.opt
         sat = self.sat
-        vnames = self.vnames
+        
         dim = len(vnames)
         step_change = opt['step_change']
         df = self.df
@@ -426,10 +421,12 @@ class DSI():
         inputs_range = inputs_max - inputs_min
         pc = step_change/100
         
-        # ----- Plotting ----- #
-        ax.scatter(*zip(x), marker = opt['npmarker'], color = opt['npcolor'], label = opt['nplabel'])
+        not_in_region_flag = False
         if eng.inShape(shp, matlab.double(list(x))) == False:
             print('x is not inside NOR.')
+            not_in_region_flag = True
+            fs_R = {'FR': 'N/A', 'rmax': 'N/A', 'rmin': 'N/A', 'space_size': 'N/A', 'plusmin': 'N/A', 'nosam': 'N/A', 
+                    'hmv': 'N/A', 'hmv_sam_flag': 'N/A', 'not_in_region_flag': not_in_region_flag}    
         else:
             # ----- 2D space ----- #
             if dim == 2:
@@ -455,8 +452,8 @@ class DSI():
                     
                 fs = fs.tolist()
                 fs.append(fs[0])
-                fs = np.array(fs)
-                plt.plot(*zip(*fs), linestyle = opt['fsstyle'], color = opt['fscolor'], label = opt['fslabel'])
+                fs_arr = np.array(fs)
+                FR = np.array(fs)
                 
             # ----- 3D space ----- #
             if dim == 3: 
@@ -485,25 +482,23 @@ class DSI():
                         [fsi[6, 0] - pc*inputs_range[0], fsi[6, 1] + pc*inputs_range[1], fsi[6, 2] - pc*inputs_range[2]],
                         [fsi[7, 0] + pc*inputs_range[0], fsi[7, 1] - pc*inputs_range[1], fsi[7, 2] - pc*inputs_range[2]]]
                     fs = np.array(fs)
+                    fs_arr = fs
                     flag = False in [eng.inShape(shp, matlab.double(list(fs[i]))) for i in range(fs.shape[0])]
                     pc += (step_change/100)/100
                     
-                faces = [[fs[0], fs[1], fs[4], fs[2], fs[0]],
+                FR = [[fs[0], fs[1], fs[4], fs[2], fs[0]],
                         [fs[0], fs[3], fs[6], fs[1], fs[0]],
                         [fs[3], fs[7], fs[5], fs[6], fs[3]], 
                         [fs[6], fs[1], fs[4], fs[5], fs[6]],
                         [fs[7], fs[3], fs[0], fs[2], fs[7]],
                         [fs[2], fs[4], fs[5], fs[7], fs[2]]]
-                for i in faces:
-                    plt.plot(*zip(*i[:-1]), color = opt['fscolor'])
-                plt.plot(*zip(*faces[-1]), color = opt['fscolor'], label = opt['fslabel'])
 
             # ----- KPIs ----- #
-            rmax = fs.max(axis = 0)
-            rmin = fs.min(axis = 0)
+            rmax = fs_arr.max(axis = 0)
+            rmin = fs_arr.min(axis = 0)
             fs_size = (rmax - rmin).prod()
             plusmin = (rmax - rmin)/2
-        
+            
             # ----- Heat map variable ----- #
             hmv_fs_R = {'name': opt['hmv'], 'mean': '-', 'max': '-', 'max_sample': '-', 'min': '-',  'min_sample': '-', 'fs_all_samples': '-'}
             no_samples_flag = False
@@ -524,14 +519,51 @@ class DSI():
                     hmv_fs_R['min']        = fs_df[opt['hmv']].min()
                     hmv_fs_R['min_sample'] = fs_df[fs_df[opt['hmv']] == hmv_fs_R['min']]
                     hmv_fs_R['fs_all_samples'] = fs_df
-            fs_R = {'rmax': rmax, 'rmin': rmin, 'space_size': fs_size, 'plusmin': plusmin, 'nosam': fs_df.shape[0], 
-                    'hmv': hmv_fs_R, 'hmv_sam_flag': no_samples_flag}    
-            self.report.update({'fs': fs_R})        
+            fs_R = {'FR': FR, 'rmax': rmax, 'rmin': rmin, 'space_size': fs_size, 'plusmin': plusmin, 'nosam': fs_df.shape[0], 
+                    'hmv': hmv_fs_R, 'hmv_sam_flag': no_samples_flag, 'not_in_region_flag': not_in_region_flag}
+                
+        self.all_x.update({str(x): fs_R})
+        return fs_R
+        
+    def flex_space(self, x):
+        """
+        Plot the flexibility space
+        """
+        import matplotlib.pyplot as plt
+        
+        ax = self.ax
+        opt = self.opt
+        vnames = self.vnames
+        dim = len(vnames)
+        
+        # ----- Use self.check_point to calculate flexibility region ----- #
+        if str(x) not in self.all_x.keys():
+            fs_R = self.check_point(x)
+        else:
+            fs_R = self.all_x[str(x)]
+            if fs_R['not_in_region_flag']:
+                print('x is not inside NOR.')
+        FR = fs_R['FR']
+        not_in_region_flag = fs_R['not_in_region_flag']
+        
+        # ----- Plotting ----- #
+        ax.scatter(*zip(x), marker = opt['npmarker'], color = opt['npcolor'], label = opt['nplabel'])
+        if not_in_region_flag:
+            pass
+        else:
+            # ----- 2D space ----- #
+            if dim == 2:
+                plt.plot(*zip(*FR), linestyle = opt['fsstyle'], color = opt['fscolor'], label = opt['fslabel'])
+            # ----- 3D space ----- #
+            if dim == 3: 
+                for i in FR:
+                    plt.plot(*zip(*i[:-1]), color = opt['fscolor'])
+                plt.plot(*zip(*FR[-1]), color = opt['fscolor'], label = opt['fslabel'])
         
         if (opt['hmv'] == 'None') or (opt['hidehmv'] == True):
             plt.legend(loc = opt['legloc'])
         
-        return self.report
+        return fs_R
     
     def send_output(self, output_filename = 'DSI_output.txt', appendix = True):
         """
