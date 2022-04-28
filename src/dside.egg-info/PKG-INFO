@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: dside
-Version: 0.1.4
+Version: 0.1.5
 Summary: Design space identification tool for plotting and analysing design spaces (2D and 3D).
 Home-page: https://github.com/stvsach/dside
 Author: Steven Sachio
