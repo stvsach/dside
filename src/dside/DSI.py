@@ -1,6 +1,3 @@
-from ast import Str
-from lib2to3.pgen2.pgen import DFAState
-
 def get_at_time(df, t, time_label = 'Time'):
     """
     Slice df which is a multi index dataframe
@@ -55,7 +52,6 @@ class DSI():
         """
         # ----- Imports ----- #
         import numpy as np
-        import pandas as pd
         import matplotlib.pyplot as plt
         from matplotlib.colors import ListedColormap
         
@@ -89,8 +85,8 @@ class DSI():
             'cmap': 'inferno80',
             'hmv': 'None', # heat map variable name
             'hmvlabel': 'hmvlabel: heat map var label', # heat map variable label
-            'nplabel': 'NOP', # Normal Operating Point: x label for flex space
-            'fslabel': 'FR',  # flexible region label
+            'nplabel': 'NOP',    # Normal Operating Point: x label for flex space
+            'fslabel': 'UPAR',   # Uniform Proven Acceptable Range
             'spacelabel': 'NOR', # Label of surface/boundary
             
             # ----- Hidden Elements ----- #
