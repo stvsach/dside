@@ -10,7 +10,7 @@ pip install dside
 For more information on how to install matlab engine please checkout this link: https://uk.mathworks.com/help/matlab/matlab_external/install-the-matlab-engine-for-python.html.
 
 ## Quick Overview
-Use this tool to visualize 2D and 3D design spaces, calculate NOR, and flexibility spaces.
+Use this tool to visualize 2D and 3D design spaces, calculate NOR, and, UPAR.
 
 ```
 import dside
