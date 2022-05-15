@@ -3,5 +3,3 @@ tests
 dist
 build
 Fig
-src/dside/__pycache__
-src/dside/dside.egg-info
