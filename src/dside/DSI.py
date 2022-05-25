@@ -324,9 +324,12 @@ class DSI():
                 plt.xlim([vmin[0] - limfactor*vrange[0], vmax[0] + limfactor*vrange[0]])
                 plt.ylim([vmin[1] - limfactor*vrange[1], vmax[1] + limfactor*vrange[1]])
             if dim == 3:
-                ax.set_xlim([vmin[0] - limfactor*vrange[0], vmax[0] + limfactor*vrange[0]])
-                ax.set_ylim([vmin[1] - limfactor*vrange[1], vmax[1] + limfactor*vrange[1]])
-                ax.set_zlim([vmin[2] - limfactor*vrange[2], vmax[2] + limfactor*vrange[2]])
+                ax.set_xlim([vmin[0] - limfactor*vrange[0],\
+                    vmax[0] + limfactor*vrange[0]])
+                ax.set_ylim([vmin[1] - limfactor*vrange[1],\
+                    vmax[1] + limfactor*vrange[1]])
+                ax.set_zlim([vmin[2] - limfactor*vrange[2],\
+                    vmax[2] + limfactor*vrange[2]])
         
         
         # Labels
@@ -349,7 +352,9 @@ class DSI():
         Create a hull using MATLAB alphashape
         Depending on alpha (opt['a']) value it can be either convex/concave
         # ----- Hull Parameters ----- #
-        'a': None, # Alpha value -> at large alpha, hull becomes convex. if set to 'critical', MATLAB finds the smallest one. if None: use mean of bounds of dimensions
+        'a': None, # Alpha value -> at large alpha, hull becomes convex.
+        If set to 'critical', MATLAB finds the smallest one. if None: use mean of bounds 
+        of dimensions
         'amul': 0.5, # Alpha multiplier value (wrt to product of mean axes)
         """
         import matlab.engine
@@ -394,7 +399,8 @@ class DSI():
         self.report['space_size'] = space_size
         return space_size, bF, P, shp
     
-    def collect_frames(self, anielev = 10, sfolder = 'animation', sname = 'plot', leading_no = 0, sdpi = 100):
+    def collect_frames(self, anielev = 10, sfolder = 'animation', sname = 'plot',\
+         leading_no = 0, sdpi = 100):
         """
         ONLY FOR 3D PLOTS
         Collect .png images for animation of plot by rotating the 3D plot
@@ -403,7 +409,8 @@ class DSI():
             ax ([type]): matplotlib axes
             anielev ([type]): elevation of the figure
             sfolder ([type]): string of the save folder
-            sname ([type]): save name of the pictures generated, will be followed by {i:04}.png
+            sname ([type]): save name of the pictures generated, 
+            will be followed by {i:04}.png
             sdpi (int, optional): [saved picture dpi]. Defaults to 100.
         """
         import matplotlib.pyplot as plt
@@ -418,7 +425,8 @@ class DSI():
         ax.view_init(elev = anielev, azim = 0)
         for ii in range(0, 2*360, 1):
                 ax.azim += 0.5
-                plt.savefig(f'{sfolder}{sname}_frame_{leading_no + ii:04}.png', dpi = sdpi)
+                plt.savefig(f'{sfolder}{sname}_frame_{leading_no + ii:04}.png',\
+                    dpi = sdpi)
     
     def check_point(self, x):
         """
@@ -448,29 +456,36 @@ class DSI():
         if eng.inShape(shp, matlab.double(list(x))) == False:
             print('x is not inside NOR.')
             not_in_region_flag = True
-            fs_R = {'x': x, 'FR': 'N/A', 'rmax': 'N/A', 'rmin': 'N/A', 'space_size': 'N/A', 'plusmin': 'N/A', 'nosam': 'N/A', 
-                    'hmv': 'N/A', 'hmv_sam_flag': 'N/A', 'not_in_region_flag': not_in_region_flag}    
+            fs_R = {'x': x, 'FR': 'N/A', 'rmax': 'N/A', 'rmin': 'N/A',
+            'space_size': 'N/A', 'plusmin': 'N/A', 'nosam': 'N/A', 
+            'hmv': 'N/A', 'hmv_sam_flag': 'N/A', 'not_in_region_flag': not_in_region_flag}
         else:
             # ----- 2D space ----- #
             if dim == 2:
                 flag = False
                 while flag == False: # Going outwards
-                    fsi   = np.array([[x[0] - pc*inputs_range[0], x[1] - pc*inputs_range[1]],
-                                    [x[0] - pc*inputs_range[0], x[1] + pc*inputs_range[1]],
-                                    [x[0] + pc*inputs_range[0], x[1] + pc*inputs_range[1]],
-                                    [x[0] + pc*inputs_range[0], x[1] - pc*inputs_range[1]]])
-                    flag = False in [eng.inShape(shp, matlab.double(list(fsi[i]))) for i in range(fsi.shape[0])]
+                    fsi   = np.array(
+                        [[x[0] - pc*inputs_range[0], x[1] - pc*inputs_range[1]],
+                        [x[0] - pc*inputs_range[0], x[1] + pc*inputs_range[1]],
+                        [x[0] + pc*inputs_range[0], x[1] + pc*inputs_range[1]],
+                        [x[0] + pc*inputs_range[0], x[1] - pc*inputs_range[1]]]
+                        )
+                    flag = False in [eng.inShape(shp, matlab.double(list(fsi[i])))\
+                        for i in range(fsi.shape[0])]
                     pc += step_change/100
 
                 pc = (step_change/100)/100
                 flag = True
                 while flag == True: # Going inwards
-                    fs = [[fsi[0, 0] + pc*inputs_range[0], fsi[0, 1] + pc*inputs_range[1]],
+                    fs = [
+                        [fsi[0, 0] + pc*inputs_range[0], fsi[0, 1] + pc*inputs_range[1]],
                         [fsi[1, 0] + pc*inputs_range[0], fsi[1, 1] - pc*inputs_range[1]],
                         [fsi[2, 0] - pc*inputs_range[0], fsi[2, 1] - pc*inputs_range[1]],
-                        [fsi[3, 0] - pc*inputs_range[0], fsi[3, 1] + pc*inputs_range[1]]]
+                        [fsi[3, 0] - pc*inputs_range[0], fsi[3, 1] + pc*inputs_range[1]]
+                        ]
                     fs = np.array(fs)
-                    flag = False in [eng.inShape(shp, matlab.double(list(fs[i]))) for i in range(fs.shape[0])]
+                    flag = False in [eng.inShape(shp, matlab.double(list(fs[i])))\
+                        for i in range(fs.shape[0])]
                     pc += (step_change/100)/100
                     
                 fs = fs.tolist()
@@ -482,31 +497,51 @@ class DSI():
             if dim == 3: 
                 flag = False
                 while flag == False: # Going outwards
-                    fsi = np.array([[x[0] - pc*inputs_range[0], x[1] - pc*inputs_range[1], x[2] - pc*inputs_range[2]],
-                                    [x[0] + pc*inputs_range[0], x[1] - pc*inputs_range[1], x[2] - pc*inputs_range[2]],
-                                    [x[0] - pc*inputs_range[0], x[1] + pc*inputs_range[1], x[2] - pc*inputs_range[2]],
-                                    [x[0] - pc*inputs_range[0], x[1] - pc*inputs_range[1], x[2] + pc*inputs_range[2]],
-                                    [x[0] + pc*inputs_range[0], x[1] + pc*inputs_range[1], x[2] - pc*inputs_range[2]],
-                                    [x[0] + pc*inputs_range[0], x[1] + pc*inputs_range[1], x[2] + pc*inputs_range[2]],
-                                    [x[0] + pc*inputs_range[0], x[1] - pc*inputs_range[1], x[2] + pc*inputs_range[2]],
-                                    [x[0] - pc*inputs_range[0], x[1] + pc*inputs_range[1], x[2] + pc*inputs_range[2]]])
-                    flag = False in [eng.inShape(shp, matlab.double(list(fsi[i]))) for i in range(fsi.shape[0])]
+                    fsi = np.array(
+                        [[x[0] - pc*inputs_range[0],\
+                        x[1] - pc*inputs_range[1], x[2] - pc*inputs_range[2]],
+                        [x[0] + pc*inputs_range[0],\
+                        x[1] - pc*inputs_range[1], x[2] - pc*inputs_range[2]],
+                        [x[0] - pc*inputs_range[0],\
+                        x[1] + pc*inputs_range[1], x[2] - pc*inputs_range[2]],
+                        [x[0] - pc*inputs_range[0],\
+                        x[1] - pc*inputs_range[1], x[2] + pc*inputs_range[2]],
+                        [x[0] + pc*inputs_range[0],\
+                        x[1] + pc*inputs_range[1], x[2] - pc*inputs_range[2]],
+                        [x[0] + pc*inputs_range[0],\
+                        x[1] + pc*inputs_range[1], x[2] + pc*inputs_range[2]],
+                        [x[0] + pc*inputs_range[0],\
+                        x[1] - pc*inputs_range[1], x[2] + pc*inputs_range[2]],
+                        [x[0] - pc*inputs_range[0],\
+                        x[1] + pc*inputs_range[1], x[2] + pc*inputs_range[2]]]
+                                    )
+                    flag = False in [eng.inShape(shp, matlab.double(list(fsi[i])))\
+                        for i in range(fsi.shape[0])]
                     pc += step_change/100
 
                 pc = (step_change/100)/100
                 flag = True
                 while flag == True: # Going inwards
-                    fs = [[fsi[0, 0] + pc*inputs_range[0], fsi[0, 1] + pc*inputs_range[1], fsi[0, 2] + pc*inputs_range[2]],
-                        [fsi[1, 0] - pc*inputs_range[0], fsi[1, 1] + pc*inputs_range[1], fsi[1, 2] + pc*inputs_range[2]],
-                        [fsi[2, 0] + pc*inputs_range[0], fsi[2, 1] - pc*inputs_range[1], fsi[2, 2] + pc*inputs_range[2]],
-                        [fsi[3, 0] + pc*inputs_range[0], fsi[3, 1] + pc*inputs_range[1], fsi[3, 2] - pc*inputs_range[2]],
-                        [fsi[4, 0] - pc*inputs_range[0], fsi[4, 1] - pc*inputs_range[1], fsi[4, 2] + pc*inputs_range[2]],
-                        [fsi[5, 0] - pc*inputs_range[0], fsi[5, 1] - pc*inputs_range[1], fsi[5, 2] - pc*inputs_range[2]],
-                        [fsi[6, 0] - pc*inputs_range[0], fsi[6, 1] + pc*inputs_range[1], fsi[6, 2] - pc*inputs_range[2]],
-                        [fsi[7, 0] + pc*inputs_range[0], fsi[7, 1] - pc*inputs_range[1], fsi[7, 2] - pc*inputs_range[2]]]
+                    fs = [[fsi[0, 0] + pc*inputs_range[0],\
+                         fsi[0, 1] + pc*inputs_range[1], fsi[0, 2] + pc*inputs_range[2]],
+                        [fsi[1, 0] - pc*inputs_range[0],\
+                        fsi[1, 1] + pc*inputs_range[1], fsi[1, 2] + pc*inputs_range[2]],
+                        [fsi[2, 0] + pc*inputs_range[0],\
+                        fsi[2, 1] - pc*inputs_range[1], fsi[2, 2] + pc*inputs_range[2]],
+                        [fsi[3, 0] + pc*inputs_range[0],\
+                        fsi[3, 1] + pc*inputs_range[1], fsi[3, 2] - pc*inputs_range[2]],
+                        [fsi[4, 0] - pc*inputs_range[0],\
+                        fsi[4, 1] - pc*inputs_range[1], fsi[4, 2] + pc*inputs_range[2]],
+                        [fsi[5, 0] - pc*inputs_range[0],\
+                        fsi[5, 1] - pc*inputs_range[1], fsi[5, 2] - pc*inputs_range[2]],
+                        [fsi[6, 0] - pc*inputs_range[0],\
+                        fsi[6, 1] + pc*inputs_range[1], fsi[6, 2] - pc*inputs_range[2]],
+                        [fsi[7, 0] + pc*inputs_range[0],\
+                        fsi[7, 1] - pc*inputs_range[1], fsi[7, 2] - pc*inputs_range[2]]]
                     fs = np.array(fs)
                     fs_arr = fs
-                    flag = False in [eng.inShape(shp, matlab.double(list(fs[i]))) for i in range(fs.shape[0])]
+                    flag = False in [eng.inShape(shp, matlab.double(list(fs[i])))\
+                        for i in range(fs.shape[0])]
                     pc += (step_change/100)/100
                     
                 FR = [[fs[0], fs[1], fs[4], fs[2], fs[0]],
@@ -523,7 +558,8 @@ class DSI():
             plusmin = (rmax - rmin)/2
             
             # ----- Heat map variable ----- #
-            hmv_fs_R = {'name': opt['hmv'], 'mean': '-', 'max': '-', 'max_sample': '-', 'min': '-',  'min_sample': '-', 'fs_all_samples': '-'}
+            hmv_fs_R = {'name': opt['hmv'], 'mean': '-', 'max': '-', 'max_sample': '-', 
+            'min': '-',  'min_sample': '-', 'fs_all_samples': '-'}
             no_samples_flag = False
             fs_df = df.copy()
             if opt['hmv'] != 'None':
@@ -542,8 +578,9 @@ class DSI():
                     hmv_fs_R['min']        = fs_df[opt['hmv']].min()
                     hmv_fs_R['min_sample'] = fs_df[fs_df[opt['hmv']] == hmv_fs_R['min']]
                     hmv_fs_R['fs_all_samples'] = fs_df
-            fs_R = {'x': x, 'FR': FR, 'rmax': rmax, 'rmin': rmin, 'space_size': fs_size, 'plusmin': plusmin, 'nosam': fs_df.shape[0], 
-                    'hmv': hmv_fs_R, 'hmv_sam_flag': no_samples_flag, 'not_in_region_flag': not_in_region_flag}
+            fs_R = {'x': x, 'FR': FR, 'rmax': rmax, 'rmin': rmin, 'space_size': fs_size, 
+                'plusmin': plusmin, 'nosam': fs_df.shape[0], 'hmv': hmv_fs_R, 
+                'hmv_sam_flag': no_samples_flag, 'not_in_region_flag': not_in_region_flag}
                 
         self.all_x.update({str(x): fs_R})
         return fs_R
@@ -570,13 +607,15 @@ class DSI():
         not_in_region_flag = fs_R['not_in_region_flag']
         
         # ----- Plotting ----- #
-        ax.scatter(*zip(x), marker = opt['npmarker'], color = opt['npcolor'], label = opt['nplabel'])
+        ax.scatter(*zip(x), marker = opt['npmarker'], color = opt['npcolor'],\
+            label = opt['nplabel'])
         if not_in_region_flag:
             pass
         else:
             # ----- 2D space ----- #
             if dim == 2:
-                plt.plot(*zip(*FR), linestyle = opt['fsstyle'], color = opt['fscolor'], label = opt['fslabel'])
+                plt.plot(*zip(*FR), linestyle = opt['fsstyle'], color = opt['fscolor'],\
+                    label = opt['fslabel'])
             # ----- 3D space ----- #
             if dim == 3: 
                 for i in FR:
@@ -606,23 +645,24 @@ class DSI():
 
         f.write('\nConstraints used: \n')
         for i in self.constraints:
-            f.write(f'{i:15} Lower bound: {self.constraints[i][0]:12}     Upper bound: {self.constraints[i][1]:12}\n')
+            f.write(f'{i:15} Lower bound: {self.constraints[i][0]:12}     \
+                Upper bound: {self.constraints[i][1]:12}\n')
 
 
         # DSI results
-        f.write(f'\n# ------------------------------ RESULTS ------------------------------ #\n')
+        f.write(f'\n# -------------------------- RESULTS -------------------------- #\n')
         f.write(f'Design space size: {rp["space_size"]:12}\n\n')
         f.write(f'Average {rp["hmv"]["name"]}:    {rp["hmv"]["mean"]:12}\n')
         f.write(f'DS Maximum {rp["hmv"]["name"]}: {rp["hmv"]["max"]:12}\n')
         f.write(f'DS Minimum {rp["hmv"]["name"]}: {rp["hmv"]["min"]:12}\n')
-        f.write(f'\n-------------------------------------------------------------------------\n')
+        f.write(f'\n-----------------------------------------------------------------\n')
         f.write(f'Detailed maximum point: \n')
         if type(rp["hmv"]["max_sample"]) != str:
             f.write(f'{rp["hmv"]["max_sample"].to_string()}\n\n')
         f.write(f'Detailed minimum point: \n')
         if type(rp["hmv"]["min_sample"]) != str:
             f.write(f'{rp["hmv"]["min_sample"].to_string()}')
-        f.write(f'\n-------------------------------------------------------------------------\n')
+        f.write(f'\n-----------------------------------------------------------------\n')
 
         if len(self.all_x) != 0:
             for n, x_i in enumerate(list(self.all_x.keys())):
@@ -634,25 +674,33 @@ class DSI():
                 plusmin = rep['plusmin']
 
                 if x != None:
-                    f.write(f'\n\n\n# ------------------------------ Flexibility Space {n+1:03} ------------------------------ #\n')
+                    f.write(f'\n\n\n# ------------------------------ Flexibility Space\
+                     {n+1:03} ------------------------------ #\n')
                     f.write(f'Flexibility space point: \n')
                     if rep['not_in_region_flag']:
                         for i, vn in enumerate(vnames):
-                            f.write(f'{vn}: {x[i]:12}' + '\u00B1' + f'{plusmin} Range: {rmin}\n')
-                        f.write(f'--------------- POINT IS NOT IN THE NOR ---------------\n\n')
+                            f.write(f'{vn}: {x[i]:12}' + '\u00B1' +\
+                                f'{plusmin} Range: {rmin}\n')
+                        f.write(f'------------ POINT IS NOT IN THE NOR ------------\n\n')
                     else:
                         for i, vn in enumerate(vnames):
-                            f.write(f'{vn}: {x[i]:12}' + '\u00B1' + f'{plusmin[i]:12} Range: {rmax[i] - rmin[i]: 12}\n')
+                            f.write(f'{vn}: {x[i]:12}' + '\u00B1' +\
+                                f'{plusmin[i]:12} Range: {rmax[i] - rmin[i]: 12}\n')
                         f.write(f'Flexibility space size: {fs_size:12}\n')
 
                         if rep['hmv_sam_flag']:
                             f.write('No samples inside flexibility cube available.')
                         else:
-                            f.write(f'\nNumber of samples inside flexibility cube: {rep["nosam"]}\n')
-                            f.write(f'Average {rep["hmv"]["name"]}:    {rep["hmv"]["mean"]:12}\n')
-                            f.write(f'DS Maximum {rep["hmv"]["name"]}: {rep["hmv"]["max"]:12}\n')
-                            f.write(f'DS Minimum {rep["hmv"]["name"]}: {rep["hmv"]["min"]:12}\n')
-                            f.write(f'\n-------------------------------------------------------------------------\n')
+                            f.write(f'\nNumber of samples inside flexibility cube:\
+                                {rep["nosam"]}\n')
+                            f.write(f'Average {rep["hmv"]["name"]}:    \
+                                {rep["hmv"]["mean"]:12}\n')
+                            f.write(f'DS Maximum {rep["hmv"]["name"]}: \
+                                {rep["hmv"]["max"]:12}\n')
+                            f.write(f'DS Minimum {rep["hmv"]["name"]}: \
+                                {rep["hmv"]["min"]:12}\n')
+                            f.write(f'\n-------------------------------------------------\
+                                ------------------------\n')
                             f.write(f'Detailed maximum point: \n')
                             if type(rep["hmv"]["max_sample"]) != str:
                                 f.write(f'{rep["hmv"]["max_sample"].to_string()}\n\n')
@@ -662,13 +710,16 @@ class DSI():
                             f.write(f'\nAll samples inside flexibility cube: \n')
                             if type(rep["hmv"]["fs_all_samples"]) != str:
                                 f.write(f'{rep["hmv"]["fs_all_samples"].to_string()}')
-                            f.write(f'\n-------------------------------------------------------------------------\n')
+                            f.write(f'\n-------------------------------------------------\
+                                ------------------------\n')
 
         if appendix:
-            f.write('\n\n\n\n# ------------------------------ APPENDIX ------------------------------ #\n')
+            f.write('\n\n\n\n# ------------------------------ APPENDIX \
+            ------------------------------ #\n')
             f.write(f'ALL SATISFIED SAMPLES: \n')
             f.write(f'\n{self.sat.to_string()}\n\n')
-            f.write(f'\n-------------------------------------------------------------------------\n')
+            f.write(f'\n-----------------------------------------------------------------\
+                --------\n')
             f.write(f'ALL VIOLATED SAMPLES: \n')
             f.write(f'\n{self.vio.to_string()}\n\n')
             f.write(f'# ----- Envelope (hull) ----- #\n')
