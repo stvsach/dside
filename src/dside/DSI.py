@@ -26,7 +26,8 @@ def qp(df, constraints, vnames, x = None, opt = None):
     """
     Quick plotting function. Uses the DSI class.
     df: Pandas DataFrame containing data
-    constraints: dictionary containing name of variable and list of [lower bound, upper bound]
+    constraints: dictionary containing name of variable and list of 
+                                    [lower bound, upper bound]
     vnames: list of manipulated variable names
     x: list of nominal point for flexible space analysis
     opt: options for the lotting
@@ -59,7 +60,8 @@ class DSI():
         self.df = df
         self.report = {
             'nosam': df.shape[0], 'space_size': '-',
-            'hmv': {'name': 'None', 'mean': '-', 'max': '-', 'max_sample': '-', 'min': '-',  'min_sample': '-'},
+            'hmv': {'name': 'None', 'mean': '-', 'max': '-', 'max_sample': '-',\
+                 'min': '-',  'min_sample': '-'},
         }
         self.all_x = {}
         self.space_size = None
@@ -112,7 +114,8 @@ class DSI():
             'elev': 20,          # Elevation of 3D plot
             'azim': -70,         # Azimuth of 3D plot
             'limfactor': 0.05,   # Axes limit factor based on range of axes
-            'axeslimdf': 'df',   # Data used to calculate axes limits ('sat', 'vio', 'df', or 'best')
+            'axeslimdf': 'df',   # Data used to calculate axes limits 
+                                 #          ('sat', 'vio', 'df', or 'best')
             
             # ----- Space Format ----- #
             'cspace': 'black',                # Color of the surface/boundary
@@ -126,11 +129,14 @@ class DSI():
             'fscolor': 'black', # Boundary line color
             
             # ----- Hull Parameters ----- #
-            'a': None, # Alpha value -> at large alpha, hull becomes convex. if set to 'critical', MATLAB finds the smallest one. if None: use mean of bounds of dimensions
+            'a': None, # Alpha value -> at large alpha,
+                       # hull becomes convex. if set to 'critical', MATLAB finds 
+                       # the smallest one. if None: use mean of bounds of dimensions
             'amul': 1, # Alpha multiplier value (wrt to product of mean axes)
         }
         self.opt = self.default_opt.copy()
-        self.bw_template = {'alpha': 1, 'csat': 'gray', 'cvio': 'black', 'fsat': 'gray', 'fvio': 'black', 'cmap': 'gray80',
+        self.bw_template = {'alpha': 1, 'csat': 'gray', 'cvio': 'black', \
+            'fsat': 'gray', 'fvio': 'black', 'cmap': 'gray80',
                            'msat': 'o', 'mvio': 'o'}
         return None
     
@@ -150,7 +156,8 @@ class DSI():
         
     def screen(self, constraints):
         """
-        Takes in the DataFrame, data, and dictionary, constraints, giving out the satisfied and violated DataFrame of samples
+        Takes in the DataFrame, data, and dictionary, constraints, 
+        giving out the satisfied and violated DataFrame of samples
         constraints: {'output_name1': [lbd1, ubd1], 'output_name2': [lbd1, ubd2], ...}
         """
         data = self.df
@@ -167,14 +174,21 @@ class DSI():
     
     def help(self):
         """
-        Prints usage instructions and ALL of the current options and return the opt dictionary.
+        Prints usage instructions and ALL of the current options and return the 
+        opt dictionary.
         """
         print('# ----- Usage Instructions ----- #')
-        print('1. ds = dside.DSI(df)            # Create instance of design space ds with data from DataFrame df')
-        print('2. p = ds.screen(constraints)    # Screen the points using the constraints (dictionary)')
-        print('3. r = ds.plot(vnames)           # Plot the design space and NOR based on vnames (list of variable names for the axes)')
-        print('4. r = ds.flex_space(x)          # Plot the nominal point and flexibility region based on point x (list/numpy array)')
-        print("5. ds..send_output('output.txt') # Send out the results in detailed .txt file")
+        print('1. ds = dside.DSI(df)            # \
+        Create instance of ds with data from DataFrame df')
+        print('2. p = ds.screen(constraints)    # \
+        Screen the points using the constraints (dictionary)')
+        print('3. r = ds.plot(vnames)           # \
+        Plot the samples and DSp based on vnames (list of variable names for the axes)')
+        print('4. r = ds.flex_space(x)          # \
+        Plot the nominal point and acceptable operating region based on point x \
+            (list/numpy array)')
+        print("5. ds..send_output('output.txt') # \
+        Send out the results in detailed .txt file")
         print('\n# ----- Options ----- #')
         for i in list(self.opt.keys()):
             print(f'{i:10}: {self.opt[i]}')
@@ -184,12 +198,13 @@ class DSI():
         """
         Plot either 2D or 3D design space based on satisfied and violated points.
         vnames: ['varname1', 'varname2', 'varname3']
-        Plotting options available by passing opt which is a dictionary to update the default self.opt.
+        Plotting options available by passing opt 
+        which is a dictionary to update the default self.opt.
         """
         import pandas as pd
         import matplotlib.pyplot as plt
         import matplotlib
-        # ------------------------------ Internal definitions ------------------------------ #
+        # ---------------------------- Internal definitions ---------------------------- #
         self.vnames = vnames
         axes_label = ['xlabel', 'ylabel', 'zlabel']
         for i, l in enumerate(vnames):
@@ -199,14 +214,15 @@ class DSI():
             self.opt.update(self.bw_template)
         self.opt.update(opt)
         
-        # ------------------------------ External definitions ------------------------------ #
+        # ---------------------------- External definitions ---------------------------- #
         sat = self.sat
         vio = self.vio
         opt = self.opt    
         plt.rcParams.update({'font.size': opt['font_size']})
         
-        # ------------------------------ Heat map Variable ------------------------------ #
-        hmv_R = {'name': opt['hmv'], 'mean': '-', 'max': '-', 'max_sample': '-', 'min': '-',  'min_sample': '-'}
+        # ----------------------------- Heat map Variable ----------------------------- #
+        hmv_R = {'name': opt['hmv'], 'mean': '-', 'max': '-', 'max_sample': '-', \
+            'min': '-',  'min_sample': '-'}
         if opt['hmv'] != 'None':
             if opt['hidesat']:
                 hmvdf = vio.copy()
@@ -253,16 +269,24 @@ class DSI():
         if opt['hidesat'] == False:
             if nosat_flag == False:
                 if (opt['hmv'] == 'None') or (opt['hidehmv'] == True):
-                    ax.scatter(*zip(*sat[vnames].to_numpy()), marker = opt['msat'], facecolors = opt['fsat'], label = opt['lsat'], color = opt['csat'], alpha = opt['alpha'])
+                    ax.scatter(*zip(*sat[vnames].to_numpy()), marker = opt['msat'],\
+                        facecolors = opt['fsat'], label = opt['lsat'],\
+                            color = opt['csat'], alpha = opt['alpha'])
                 else:
                     fig.colorbar(sm, label = opt['hmvlabel'])
-                    ax.scatter(*zip(*sat[vnames].to_numpy()), marker = opt['msat'], label = opt['lsat'], color = cmap(norm(sat[opt['hmv']])), alpha = opt['alpha'])                
+                    ax.scatter(*zip(*sat[vnames].to_numpy()), marker = opt['msat'],\
+                        label = opt['lsat'], color = cmap(norm(sat[opt['hmv']])),\
+                            alpha = opt['alpha'])                
         if opt['hidevio'] == False:
             if novio_flag == False:
                 if (opt['hmv'] == 'None') or (opt['hidehmv'] == True):
-                    ax.scatter(*zip(*vio[vnames].to_numpy()), marker = opt['mvio'], facecolors = opt['fvio'], label = opt['lvio'], color = opt['cvio'], alpha = opt['alpha'])
+                    ax.scatter(*zip(*vio[vnames].to_numpy()), marker = opt['mvio'],\
+                        facecolors = opt['fvio'], label = opt['lvio'],\
+                            color = opt['cvio'], alpha = opt['alpha'])
                 else:
-                    ax.scatter(*zip(*vio[vnames].to_numpy()), marker = opt['mvio'], label = opt['lvio'], color = cmap(norm(vio[opt['hmv']])), alpha = opt['alpha'])
+                    ax.scatter(*zip(*vio[vnames].to_numpy()), marker = opt['mvio'],\
+                        label = opt['lvio'], color = cmap(norm(vio[opt['hmv']])),\
+                            alpha = opt['alpha'])
         
         # ----- Design space surface/boundary ----- #
         if opt['hidenor'] == False:
@@ -273,12 +297,14 @@ class DSI():
             if dim == 2:
                 for i in range(bF.shape[0]):
                     if i == 0:
-                        plt.plot(P[bF][i][:, 0], P[bF][i][:, 1], color = opt['cspace'], label = opt['spacelabel'])
+                        plt.plot(P[bF][i][:, 0], P[bF][i][:, 1], color = opt['cspace'],\
+                            label = opt['spacelabel'])
                     else:
                         plt.plot(P[bF][i][:, 0], P[bF][i][:, 1], color = opt['cspace'])
 
             if dim == 3:
-                surf = ax.plot_trisurf(*zip(*P), triangles = bF, color = opt['cspace'], alpha = opt['alphaspace'], label = opt['spacelabel'])
+                surf = ax.plot_trisurf(*zip(*P), triangles = bF, color = opt['cspace'],\
+                    alpha = opt['alphaspace'], label = opt['spacelabel'])
                 surf._facecolors2d=surf._facecolor3d
                 surf._edgecolors2d=surf._edgecolor3d
         
