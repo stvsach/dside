@@ -173,26 +173,27 @@ class DSI():
         self.vio = vio
         return sat, vio
     
-    def help(self):
+    def help(self, print_opt = False):
         """
         Prints usage instructions and ALL of the current options and return the 
         opt dictionary.
         """
         print('# ----- Usage Instructions ----- #')
-        print('1. ds = dside.DSI(df)            # \
-        Create instance of ds with data from DataFrame df')
-        print('2. p = ds.screen(constraints)    # \
-        Screen the points using the constraints (dictionary)')
-        print('3. r = ds.plot(vnames)           # \
-        Plot the samples and DSp based on vnames (list of variable names for the axes)')
-        print('4. r = ds.find_AOR(x)          # \
-        Plot the nominal point and acceptable operating region based on point x \
-            (list/numpy array)')
-        print("5. ds..send_output('output.txt') # \
-        Send out the results in detailed .txt file")
-        print('\n# ----- Options ----- #')
-        for i in list(self.opt.keys()):
-            print(f'{i:10}: {self.opt[i]}')
+        print('1. Create instance of ds with data from DataFrame df')
+        print('  ds = dside.DSI(df)')
+        print('2. Screen the points using the constraints (dictionary)')
+        print('  p = ds.screen(constraints)')
+        print('3. Find DSp boundaries based on vnames (list of variable names for the axes)')
+        print('  shp = ds.find_DSp(vnames)')
+        print('4. Plot the design space and the samples')
+        print('  r = ds.plot(vnames)')
+        print('5. Plot the nominal point and AOR based on point x (list/numpy array)')
+        print('  r = ds.find_AOR(x)')
+        print("6. ds.send_output('output.txt') save the results in detailed .txt file")
+        if print_opt:
+            print('\n# ----- Options ----- #')
+            for i in list(self.opt.keys()):
+                print(f'{i:10}: {self.opt[i]}')
         return self.opt
     
     def plot(self, vnames, opt = {}):
