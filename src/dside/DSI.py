@@ -29,7 +29,7 @@ def qp(df, constraints, vnames, x = None, opt = None):
     constraints: dictionary containing name of variable and list of 
                                     [lower bound, upper bound]
     vnames: list of manipulated variable names
-    x: list of nominal point for flexible space analysis
+    x: list of nominal point for acceptable operating region analysis
     opt: options for the lotting
     """
     from dside import DSI
@@ -38,7 +38,7 @@ def qp(df, constraints, vnames, x = None, opt = None):
     p = ds.screen(constraints)
     r = ds.plot(vnames, opt)
     if x != None:
-        r = ds.flex_space(x)
+        r = ds.find_AOR(x)
     return ds
 
 class DSI():
@@ -87,15 +87,16 @@ class DSI():
             'cmap': 'inferno80',
             'hmv': 'None', # heat map variable name
             'hmvlabel': 'hmvlabel: heat map var label', # heat map variable label
-            'nplabel': 'NOP',    # Normal Operating Point: x label for flex space
-            'fslabel': 'UPAR',   # Uniform Proven Acceptable Range
-            'spacelabel': 'NOR', # Label of surface/boundary
+            'nplabel': 'NOP',    # Normal Operating Point label for legend
+
+            'fslabel': 'AOR',   # Uniform Proven Acceptable Range
+            'spacelabel': 'DSp', # Label of surface/boundary
             
             # ----- Hidden Elements ----- #
             'hidehmv': False, # If True, no heat map will be plotted
             'hidesat': False, # If True, no satisfied variables will be plotted
             'hidevio': False, # If True, no violated variables will be plotted
-            'hidenor': False, # If True, hides the surface/boundary
+            'hidedsp': False, # If True, hides the surface/boundary
             
             # ----- Plot Format ----- #
             'fs': (6, 4),        # Figure size
@@ -118,11 +119,11 @@ class DSI():
                                  #          ('sat', 'vio', 'df', or 'best')
             
             # ----- Space Format ----- #
-            'cspace': 'black',                # Color of the surface/boundary
-            'alphaspace': 0.2,            # Transparency of surface/boundary
+            'cspace': 'black', # Color of the surface/boundary
+            'alphaspace': 0.2, # Transparency of surface/boundary
             
-            # ----- Flex Space Parameters ----- #
-            'step_change': 1,   # Step change of expanding flex space in percent
+            # ----- AOR Parameters ----- #
+            'step_change': 1,   # Step change of expanding AOR in percent
             'npmarker': 'x',    # Nominal point marker
             'npcolor': 'black', # Nominal point color
             'fsstyle': '--',    # Boundary line style
@@ -184,7 +185,7 @@ class DSI():
         Screen the points using the constraints (dictionary)')
         print('3. r = ds.plot(vnames)           # \
         Plot the samples and DSp based on vnames (list of variable names for the axes)')
-        print('4. r = ds.flex_space(x)          # \
+        print('4. r = ds.find_AOR(x)          # \
         Plot the nominal point and acceptable operating region based on point x \
             (list/numpy array)')
         print("5. ds..send_output('output.txt') # \
@@ -289,9 +290,9 @@ class DSI():
                             alpha = opt['alpha'])
         
         # ----- Design space surface/boundary ----- #
-        if opt['hidenor'] == False:
+        if opt['hidedsp'] == False:
             if self.space_size == None:
-                self.space_size, bF, P, self.shp = self.envelope(vnames, opt)
+                self.space_size, bF, P, self.shp = self.find_DSp(vnames, opt)
             bF = self.bF
             P = self.P
             if dim == 2:
@@ -347,7 +348,7 @@ class DSI():
             plt.savefig(opt['save_name'], dpi = opt['save_dpi'])
         return self.report
     
-    def envelope(self, vnames, opt = {}):
+    def find_DSp(self, vnames, opt = {}):
         """
         Create a hull using MATLAB alphashape
         Depending on alpha (opt['a']) value it can be either convex/concave
@@ -454,7 +455,7 @@ class DSI():
         
         not_in_region_flag = False
         if eng.inShape(shp, matlab.double(list(x))) == False:
-            print('x is not inside NOR.')
+            print('x is not inside DSp.')
             not_in_region_flag = True
             fs_R = {'x': x, 'FR': 'N/A', 'rmax': 'N/A', 'rmin': 'N/A',
             'space_size': 'N/A', 'plusmin': 'N/A', 'nosam': 'N/A', 
@@ -569,7 +570,7 @@ class DSI():
                 for i in range(dim):
                     fs_df = fs_df[fs_df[vnames[i]] >= rmin[i]]
                 if fs_df.shape[0] == 0:
-                    print('No samples inside flexibility cube available.')
+                    print('No samples inside AOR available.')
                     no_samples_flag = True
                 if no_samples_flag == False:
                     hmv_fs_R['mean']       = fs_df[opt['hmv']].mean()
@@ -585,9 +586,9 @@ class DSI():
         self.all_x.update({str(x): fs_R})
         return fs_R
         
-    def flex_space(self, x):
+    def find_AOR(self, x):
         """
-        Plot the flexibility space
+        Plot the AOR
         """
         import matplotlib.pyplot as plt
         
@@ -596,13 +597,13 @@ class DSI():
         vnames = self.vnames
         dim = len(vnames)
         
-        # ----- Use self.check_point to calculate flexibility region ----- #
+        # ----- Use self.check_point to calculate AOR ----- #
         if str(x) not in self.all_x.keys():
             fs_R = self.check_point(x)
         else:
             fs_R = self.all_x[str(x)]
             if fs_R['not_in_region_flag']:
-                print('x is not inside NOR.')
+                print('x is not inside DSp.')
         FR = fs_R['FR']
         not_in_region_flag = fs_R['not_in_region_flag']
         
@@ -674,24 +675,24 @@ class DSI():
                 plusmin = rep['plusmin']
 
                 if x != None:
-                    f.write(f'\n\n\n# ------------------------------ Flexibility Space\
-                     {n+1:03} ------------------------------ #\n')
-                    f.write(f'Flexibility space point: \n')
+                    f.write(f'\n\n\n# ------------------------------ Acceptable Operating\
+                     Region {n+1:03} ------------------------------ #\n')
+                    f.write(f'AOR point: \n')
                     if rep['not_in_region_flag']:
                         for i, vn in enumerate(vnames):
                             f.write(f'{vn}: {x[i]:12}' + '\u00B1' +\
                                 f'{plusmin} Range: {rmin}\n')
-                        f.write(f'------------ POINT IS NOT IN THE NOR ------------\n\n')
+                        f.write(f'------------ POINT IS NOT IN THE DSp ------------\n\n')
                     else:
                         for i, vn in enumerate(vnames):
                             f.write(f'{vn}: {x[i]:12}' + '\u00B1' +\
                                 f'{plusmin[i]:12} Range: {rmax[i] - rmin[i]: 12}\n')
-                        f.write(f'Flexibility space size: {fs_size:12}\n')
+                        f.write(f'AOR size: {fs_size:12}\n')
 
                         if rep['hmv_sam_flag']:
-                            f.write('No samples inside flexibility cube available.')
+                            f.write('No samples inside AOR available.')
                         else:
-                            f.write(f'\nNumber of samples inside flexibility cube:\
+                            f.write(f'\nNumber of samples inside AOR:\
                                 {rep["nosam"]}\n')
                             f.write(f'Average {rep["hmv"]["name"]}:    \
                                 {rep["hmv"]["mean"]:12}\n')
@@ -707,7 +708,7 @@ class DSI():
                             f.write(f'Detailed minimum point: \n')
                             if type(rep["hmv"]["min_sample"]) != str:
                                 f.write(f'{rep["hmv"]["min_sample"].to_string()}')
-                            f.write(f'\nAll samples inside flexibility cube: \n')
+                            f.write(f'\nAll samples inside AOR: \n')
                             if type(rep["hmv"]["fs_all_samples"]) != str:
                                 f.write(f'{rep["hmv"]["fs_all_samples"].to_string()}')
                             f.write(f'\n-------------------------------------------------\
