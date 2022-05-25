@@ -1,7 +1,8 @@
 from setuptools import find_packages, setup
 
-__version__ = '0.1.5.1'
-short_description = 'Design space identification tool for plotting and analysing design spaces (2D and 3D).'
+__version__ = '0.1.6'
+short_description = 'Design space identification tool for plotting and analysing design \
+    spaces (2D and 3D).'
 with open("README.md", "r") as fh:
     long_description = fh.read()
     
@@ -21,12 +22,12 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Operating System :: OS Independent',
         'Intended Audience :: Education',
-    ],                                               # Information to filter the project on PyPi website
-    packages = find_packages(where = 'src'),         # List of all python modules to be installed
+    ],                                       # Information to filter the project on PyPi
+    packages = find_packages(where = 'src'), # List of all python modules to be installed
     package_dir = {'': 'src'},
-    python_requires='>=3.9',                         # Minimum version requirement of the package
-    py_modules=['dside'],                            # Name of the python package
+    python_requires='>=3.9',                 # Minimum version requirement of the package
+    py_modules=['dside'],                    # Name of the python package
     install_requires=['numpy',
                       'matplotlib',
-                      'pandas']                      # Install other dependencies if any
+                      'pandas']              # Install other dependencies if any
 )
