@@ -81,16 +81,12 @@ class DSI():
             'save_dpi': 480, # save dpi
             
             # ----- Labels ----- #
-            'xlabel': 'x',     # x axis label
-            'ylabel': 'y',     # y axis label
-            'zlabel': 'z',     # z axis label
-            'cmap': 'inferno80',
-            'hmv': 'None', # heat map variable name
+            'xlabel': 'x',       # x axis label
+            'ylabel': 'y',       # y axis label
+            'zlabel': 'z',       # z axis label
+            'cmap': 'inferno80', # Matplotlib colour map
+            'hmv': 'None',       # heat map variable name
             'hmvlabel': 'hmvlabel: heat map var label', # heat map variable label
-            'nplabel': 'NOP',    # Normal Operating Point label for legend
-
-            'fslabel': 'AOR',   # Uniform Proven Acceptable Range
-            'spacelabel': 'DSp', # Label of surface/boundary
             
             # ----- Hidden Elements ----- #
             'hidehmv': False, # If True, no heat map will be plotted
@@ -99,35 +95,51 @@ class DSI():
             'hidedsp': False, # If True, hides the surface/boundary
             
             # ----- Plot Format ----- #
-            'fs': (6, 4),        # Figure size
-            'bw': False,         # If True, use black-white template
-            'csat': 'g',         # Satisfied samples color
-            'cvio': 'r',         # Violated samples color
-            'msat': 'o',         # Marker of satisfied points
-            'mvio': 'o',         # Marker of violated points
-            'fsat': 'g',         # Marker fill color of satisfied points
-            'fvio': 'r',         # Marker fill color of violated points
-            'lsat': 'Satisfied', # Satisfied samples label
-            'lvio': 'Violated',  # Violated samples label
-            'alpha': 0.45,       # Transparency of points
-            'legloc': 'best',    # Legend location
-            'font_size': 10,     # Font size
-            'elev': 20,          # Elevation of 3D plot
-            'azim': -70,         # Azimuth of 3D plot
-            'limfactor': 0.05,   # Axes limit factor based on range of axes
-            'axeslimdf': 'df',   # Data used to calculate axes limits 
-                                 #          ('sat', 'vio', 'df', or 'best')
+            'fs': (6, 4),            # Figure size
+            'bw': False,             # If True, use black-white template
+            'alpha': 0.45,           # Transparency of points
+            'font_size': 10,         # Font size
+            # Satisfied samples
+            'satlabel': 'Satisfied', # Satisfied samples label
+            'satcolor': 'g',         # Satisfied samples color
+            'satmarker': 'o',        # Marker of satisfied points
+            'satfill': 'g',          # Marker fill color of satisfied points
+            # Violated samples
+            'violabel': 'Violated',  # Violated samples label
+            'viocolor': 'r',         # Violated samples color
+            'viomarker': 'o',        # Marker of violated points
+            'viofill': 'r',          # Marker fill color of violated points
+            # Legend
+            'legloc': 'best',        # Legend location
+            'framealpha': 0.8,       # Legend box transparency
+            # 3D view
+            'elev': 20,              # Elevation of 3D plot
+            'azim': -70,             # Azimuth of 3D plot
+            # Axes limit
+            'limfactor': 0.05,       # Axes limit factor based on range of axes
+            'axeslimdf': 'df',       # Data used to calculate axes limits 
+                                     #          ('sat', 'vio', 'df', or 'best')
             
-            # ----- Space Format ----- #
-            'cspace': 'black', # Color of the surface/boundary
-            'alphaspace': 0.2, # Transparency of surface/boundary
+            # ----- Design Space Parameters ----- #
+            'dsplabel': 'DSp',   # Label of surface/boundary
+            'dspcolor': 'black', # Color of the surface/boundary (both)
+            'dspwidth': 3,       # Thickness of the boundary (2D)
+            'dspstyle': '-',     # Line style of the boundary (2D)
+            'dspalpha': 0.2,     # Transparency of surface/boundary (3D)
             
+            # ----- NOP Parameters ----- #
+            'step_change': 1,    # Step change of expanding AOR in percent
+            'noplabel': 'NOP',   # Normal Operating Point label for legend
+            'nopmarker': 'x',    # Nominal operating point marker style
+            'nopwidth':   3,     # Nominal operating point marker thickness
+            'nopcolor': 'black', # Nominal operating point marker color
+            'nopsize':  100,     # Nominal operating point marker size
+
             # ----- AOR Parameters ----- #
-            'step_change': 1,   # Step change of expanding AOR in percent
-            'npmarker': 'x',    # Nominal point marker
-            'npcolor': 'black', # Nominal point color
-            'fsstyle': '--',    # Boundary line style
-            'fscolor': 'black', # Boundary line color
+            'aorlabel': 'AOR',   # Uniform Proven Acceptable Range
+            'aorstyle': '--',    # AOR boundary line style
+            'aorcolor': 'black', # AOR boundary line color
+            'aorwidth': 3,       # AOR boundary line width
             
             # ----- Hull Parameters ----- #
             'a': None, # Alpha value -> at large alpha,
@@ -136,9 +148,9 @@ class DSI():
             'amul': 1, # Alpha multiplier value (wrt to product of mean axes)
         }
         self.opt = self.default_opt.copy()
-        self.bw_template = {'alpha': 1, 'csat': 'gray', 'cvio': 'black', \
-            'fsat': 'gray', 'fvio': 'black', 'cmap': 'gray80',
-                           'msat': 'o', 'mvio': 'o'}
+        self.bw_template = {'alpha': 1, 'satcolor': 'gray', 'viocolor': 'black', \
+            'satfill': 'gray', 'viofill': 'black', 'cmap': 'gray80',
+                           'satmarker': 'o', 'viomarker': 'o'}
         return None
     
     def reset(self):
@@ -272,23 +284,23 @@ class DSI():
         if opt['hidesat'] == False:
             if nosat_flag == False:
                 if (opt['hmv'] == 'None') or (opt['hidehmv'] == True):
-                    ax.scatter(*zip(*sat[vnames].to_numpy()), marker = opt['msat'],\
-                        facecolors = opt['fsat'], label = opt['lsat'],\
-                            color = opt['csat'], alpha = opt['alpha'])
+                    ax.scatter(*zip(*sat[vnames].to_numpy()), marker = opt['satmarker'],\
+                        facecolors = opt['satfill'], label = opt['satlabel'],\
+                            color = opt['satcolor'], alpha = opt['alpha'])
                 else:
                     fig.colorbar(sm, label = opt['hmvlabel'])
-                    ax.scatter(*zip(*sat[vnames].to_numpy()), marker = opt['msat'],\
-                        label = opt['lsat'], color = cmap(norm(sat[opt['hmv']])),\
+                    ax.scatter(*zip(*sat[vnames].to_numpy()), marker = opt['satmarker'],\
+                        label = opt['satlabel'], color = cmap(norm(sat[opt['hmv']])),\
                             alpha = opt['alpha'])                
         if opt['hidevio'] == False:
             if novio_flag == False:
                 if (opt['hmv'] == 'None') or (opt['hidehmv'] == True):
-                    ax.scatter(*zip(*vio[vnames].to_numpy()), marker = opt['mvio'],\
-                        facecolors = opt['fvio'], label = opt['lvio'],\
-                            color = opt['cvio'], alpha = opt['alpha'])
+                    ax.scatter(*zip(*vio[vnames].to_numpy()), marker = opt['viomarker'],\
+                        facecolors = opt['viofill'], label = opt['violabel'],\
+                            color = opt['viocolor'], alpha = opt['alpha'])
                 else:
-                    ax.scatter(*zip(*vio[vnames].to_numpy()), marker = opt['mvio'],\
-                        label = opt['lvio'], color = cmap(norm(vio[opt['hmv']])),\
+                    ax.scatter(*zip(*vio[vnames].to_numpy()), marker = opt['viomarker'],\
+                        label = opt['violabel'], color = cmap(norm(vio[opt['hmv']])),\
                             alpha = opt['alpha'])
         
         # ----- Design space surface/boundary ----- #
@@ -300,14 +312,17 @@ class DSI():
             if dim == 2:
                 for i in range(bF.shape[0]):
                     if i == 0:
-                        plt.plot(P[bF][i][:, 0], P[bF][i][:, 1], color = opt['cspace'],\
-                            label = opt['spacelabel'])
+                        plt.plot(P[bF][i][:, 0], P[bF][i][:, 1],\
+                            linewidth = opt['dspwidth'], linestyle = opt['dspstyle'],\
+                                 color = opt['dspcolor'], label = opt['dsplabel'])
                     else:
-                        plt.plot(P[bF][i][:, 0], P[bF][i][:, 1], color = opt['cspace'])
+                        plt.plot(P[bF][i][:, 0], P[bF][i][:, 1],\
+                            linewidth = opt['dspwidth'], linestyle = opt['dspstyle'],\
+                                 color = opt['dspcolor'])
 
             if dim == 3:
-                surf = ax.plot_trisurf(*zip(*P), triangles = bF, color = opt['cspace'],\
-                    alpha = opt['alphaspace'], label = opt['spacelabel'])
+                surf = ax.plot_trisurf(*zip(*P), triangles = bF, color = opt['dspcolor'],\
+                    alpha = opt['dspalpha'], label = opt['dsplabel'])
                 surf._facecolors2d=surf._facecolor3d
                 surf._edgecolors2d=surf._edgecolor3d
         
@@ -342,7 +357,7 @@ class DSI():
             ax.set_zlabel(opt['zlabel'])
             ax.view_init(elev = opt['elev'], azim = opt['azim'])
         if (opt['hmv'] == 'None') or (opt['hidehmv'] == True):
-            plt.legend(loc = opt['legloc'])
+            plt.legend(loc = opt['legloc'], framealpha = opt['framealpha'])
         
         # Saving
         plt.tight_layout()
@@ -610,23 +625,24 @@ class DSI():
         not_in_region_flag = fs_R['not_in_region_flag']
         
         # ----- Plotting ----- #
-        ax.scatter(*zip(x), marker = opt['npmarker'], color = opt['npcolor'],\
-            label = opt['nplabel'])
+        ax.scatter(*zip(x), s = opt['nopsize'], marker = opt['nopmarker'],\
+             color = opt['nopcolor'], label = opt['noplabel'],\
+                 linewidths = opt['nopwidth'])
         if not_in_region_flag:
             pass
         else:
             # ----- 2D space ----- #
             if dim == 2:
-                plt.plot(*zip(*FR), linestyle = opt['fsstyle'], color = opt['fscolor'],\
-                    label = opt['fslabel'])
+                plt.plot(*zip(*FR), linestyle = opt['aorstyle'], color = opt['aorcolor'],\
+                    linewidth = opt['aorwidth'], label = opt['aorlabel'])
             # ----- 3D space ----- #
             if dim == 3: 
                 for i in FR:
-                    plt.plot(*zip(*i[:-1]), color = opt['fscolor'])
-                plt.plot(*zip(*FR[-1]), color = opt['fscolor'], label = opt['fslabel'])
+                    plt.plot(*zip(*i[:-1]), color = opt['aorcolor'])
+                plt.plot(*zip(*FR[-1]), color = opt['aorcolor'], label = opt['aorlabel'])
         
         if (opt['hmv'] == 'None') or (opt['hidehmv'] == True):
-            plt.legend(loc = opt['legloc'])
+            plt.legend(loc = opt['legloc'], framealpha = opt['framealpha'])
         
         return fs_R
     
