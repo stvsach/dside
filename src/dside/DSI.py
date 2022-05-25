@@ -630,13 +630,15 @@ class DSI():
         
         return fs_R
     
-    def send_output(self, output_filename = 'DSI_output.txt', appendix = True):
+    def send_output(self, output_filename = 'DSI_output', appendix = True,\
+            rp_pkl = True):
         """
-        Send report of the DSI study as a txt file.
+        Send report of the DSI study as a txt file and .pkl file.
         """
         rp = self.report
+        report_pkl = rp.copy()
         vnames = self.vnames
-        f = open(f'{output_filename}', 'w')
+        f = open(f'{output_filename}.txt', 'w')
         # Headers
         f.write('Design Space Identification\n')
         f.write(f'Dataset name: {output_filename}\n\n')
@@ -648,16 +650,17 @@ class DSI():
 
         f.write('\nConstraints used: \n')
         for i in self.constraints:
-            f.write(f'{i:15} Lower bound: {self.constraints[i][0]:12}     \
-                Upper bound: {self.constraints[i][1]:12}\n')
+            
+            f.write(f'{i:10}   Lower bound: {self.constraints[i][0]:10}'+\
+                f'   Upper bound: {self.constraints[i][1]:10}\n')
 
 
         # DSI results
         f.write(f'\n# -------------------------- RESULTS -------------------------- #\n')
-        f.write(f'Design space size: {rp["space_size"]:12}\n\n')
-        f.write(f'Average {rp["hmv"]["name"]}:    {rp["hmv"]["mean"]:12}\n')
-        f.write(f'DS Maximum {rp["hmv"]["name"]}: {rp["hmv"]["max"]:12}\n')
-        f.write(f'DS Minimum {rp["hmv"]["name"]}: {rp["hmv"]["min"]:12}\n')
+        f.write(f'Design space size: {rp["space_size"]:10f}\n\n')
+        f.write(f'Average {rp["hmv"]["name"]}:    {rp["hmv"]["mean"]:10f}\n')
+        f.write(f'DS Maximum {rp["hmv"]["name"]}: {rp["hmv"]["max"]:10f}\n')
+        f.write(f'DS Minimum {rp["hmv"]["name"]}: {rp["hmv"]["min"]:10f}\n')
         f.write(f'\n-----------------------------------------------------------------\n')
         f.write(f'Detailed maximum point: \n')
         if type(rp["hmv"]["max_sample"]) != str:
@@ -670,6 +673,7 @@ class DSI():
         if len(self.all_x) != 0:
             for n, x_i in enumerate(list(self.all_x.keys())):
                 rep = self.all_x[x_i]
+                report_pkl['x'] = rep
                 x = rep['x']
                 rmax = rep['rmax']
                 rmin = rep['rmin']
@@ -677,33 +681,35 @@ class DSI():
                 plusmin = rep['plusmin']
 
                 if x != None:
-                    f.write(f'\n\n\n# ------------------------------ Acceptable Operating\
-                     Region {n+1:03} ------------------------------ #\n')
+                    f.write(f'\n\n\n# ------------------------------ Acceptable ' + \
+                    f'Operating Region {n+1:03} ------------------------------ #\n')
                     f.write(f'AOR point: \n')
                     if rep['not_in_region_flag']:
                         for i, vn in enumerate(vnames):
-                            f.write(f'{vn}: {x[i]:12}' + '\u00B1' +\
-                                f'{plusmin} Range: {rmin}\n')
-                        f.write(f'------------ POINT IS NOT IN THE DSp ------------\n\n')
+                            f.write(f'{vn}: {x[i]:10}\n')
+                        f.write(f'-------------------------------------------------\n')
+                        f.write(f'------------ POINT IS NOT IN THE DSp ------------\n')
+                        f.write(f'-------------------------------------------------\n\n')
                     else:
                         for i, vn in enumerate(vnames):
-                            f.write(f'{vn}: {x[i]:12}' + '\u00B1' +\
-                                f'{plusmin[i]:12} Range: {rmax[i] - rmin[i]: 12}\n')
-                        f.write(f'AOR size: {fs_size:12}\n')
+                            f.write(f'{vn}: {x[i]:10f}' + ' +- ' +\
+                                f'{plusmin[i]:10f} Range: {rmin[i]:5f} - {rmax[i]:5f}' +\
+                                        f' ({rmax[i] - rmin[i]:10})\n')
+                        f.write(f'AOR size: {fs_size:10f}\n')
 
                         if rep['hmv_sam_flag']:
                             f.write('No samples inside AOR available.')
                         else:
-                            f.write(f'\nNumber of samples inside AOR:\
-                                {rep["nosam"]}\n')
-                            f.write(f'Average {rep["hmv"]["name"]}:    \
-                                {rep["hmv"]["mean"]:12}\n')
-                            f.write(f'DS Maximum {rep["hmv"]["name"]}: \
-                                {rep["hmv"]["max"]:12}\n')
-                            f.write(f'DS Minimum {rep["hmv"]["name"]}: \
-                                {rep["hmv"]["min"]:12}\n')
-                            f.write(f'\n-------------------------------------------------\
-                                ------------------------\n')
+                            f.write(f'\nNumber of samples inside AOR:' +\
+                                f'{rep["nosam"]}\n')
+                            f.write(f'Average {rep["hmv"]["name"]}:' +\
+                                f'{rep["hmv"]["mean"]:10f}\n')
+                            f.write(f'DS Maximum {rep["hmv"]["name"]}:' +\
+                                f'{rep["hmv"]["max"]:10f}\n')
+                            f.write(f'DS Minimum {rep["hmv"]["name"]}:' +\
+                                f'{rep["hmv"]["min"]:10f}\n')
+                            f.write(f'\n-----------------------------------------------'+\
+                                '--------------------------------------------------\n')
                             f.write(f'Detailed maximum point: \n')
                             if type(rep["hmv"]["max_sample"]) != str:
                                 f.write(f'{rep["hmv"]["max_sample"].to_string()}\n\n')
@@ -713,16 +719,16 @@ class DSI():
                             f.write(f'\nAll samples inside AOR: \n')
                             if type(rep["hmv"]["fs_all_samples"]) != str:
                                 f.write(f'{rep["hmv"]["fs_all_samples"].to_string()}')
-                            f.write(f'\n-------------------------------------------------\
-                                ------------------------\n')
+                            f.write(f'\n-----------------------------------------------'+\
+                                '--------------------------------------------------\n')
 
         if appendix:
-            f.write('\n\n\n\n# ------------------------------ APPENDIX \
-            ------------------------------ #\n')
+            f.write('\n\n\n\n# ------------------------------ APPENDIX ----------------'+\
+                '-------------- #\n')
             f.write(f'ALL SATISFIED SAMPLES: \n')
             f.write(f'\n{self.sat.to_string()}\n\n')
-            f.write(f'\n-----------------------------------------------------------------\
-                --------\n')
+            f.write(f'\n---------------------------------------------------------------'+\
+                '----------\n')
             f.write(f'ALL VIOLATED SAMPLES: \n')
             f.write(f'\n{self.vio.to_string()}\n\n')
             f.write(f'# ----- Envelope (hull) ----- #\n')
@@ -734,3 +740,9 @@ class DSI():
                 f.write(f'{str(i)}\n')
 
         f.close()
+        
+        import pickle
+        with open(output_filename + '.pkl', 'wb') as handle:
+            pickle.dump(report_pkl, handle, protocol = pickle.HIGHEST_PROTOCOL)
+        print(f'Pickle file saved at: {output_filename}.pkl')
+        return report_pkl
