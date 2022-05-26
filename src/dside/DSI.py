@@ -85,6 +85,7 @@ class DSI():
             'ylabel': 'y',       # y axis label
             'zlabel': 'z',       # z axis label
             'cmap': 'inferno80', # Matplotlib colour map
+            'mycmap': None,      # Use your own cmap (input name of cmap as str)
             'hmv': 'None',       # heat map variable name
             'hmvlabel': 'hmvlabel: heat map var label', # heat map variable label
             
@@ -247,7 +248,13 @@ class DSI():
                 hmvdf = pd.concat([sat, vio], axis = 0)
             hmvdf = hmvdf[opt['hmv']]
             norm = matplotlib.colors.Normalize(vmin = hmvdf.min(), vmax = hmvdf.max())
-            cmap = self.cmap_opt[opt['cmap']]
+            if opt['mycmap'] != None:
+                if type(opt['mycmap']) == str:
+                    cmap = plt.cm.get_cmap(opt['mycmap'], 256)
+                else:
+                    cmap = opt['mycmap']
+            else:
+                cmap = self.cmap_opt[opt['cmap']]
             sm = plt.cm.ScalarMappable(cmap = cmap, norm = norm)
             
             # ----- Calculating heat map variable values in design space ----- #
