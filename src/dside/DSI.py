@@ -286,6 +286,7 @@ class DSI():
         elif dim > 3:
             print('Dimension of vnames is larger than 3.')
         self.ax = ax
+        self.fig = fig
         
         # Scatter plot        
         if opt['hidesat'] == False:
