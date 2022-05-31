@@ -209,8 +209,8 @@ class DSI():
         print('r = ds.plot(vnames)')
         print('# 5. Plot the nominal point and AOR based on point x (list/numpy array)')
         print('r = ds.find_AOR(x)')
-        print('# 6. Save the results in detailed .txt file')
-        print("ds.send_output('output.txt')")
+        print('# 6. Save the results in detailed output.txt file and output.pkl file')
+        print("ds.send_output('output')")
         if print_opt:
             print('\n# ----- Options ----- #')
             for i in list(self.opt.keys()):
