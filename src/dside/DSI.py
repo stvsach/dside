@@ -365,7 +365,7 @@ class DSI():
             ax.set_zlabel(opt['zlabel'])
             ax.view_init(elev = opt['elev'], azim = opt['azim'])
         if (opt['hmv'] == 'None') or (opt['hidehmv'] == True):
-            plt.legend(loc = opt['legloc'], framealpha = opt['framealpha'])
+            plt.legend(loc = opt['legloc'], framealpha = opt['framealpha']).set_zorder(100)
         
         # Saving
         plt.tight_layout()
@@ -650,7 +650,7 @@ class DSI():
                 plt.plot(*zip(*FR[-1]), color = opt['aorcolor'], label = opt['aorlabel'])
         
         if (opt['hmv'] == 'None') or (opt['hidehmv'] == True):
-            plt.legend(loc = opt['legloc'], framealpha = opt['framealpha'])
+            plt.legend(loc = opt['legloc'], framealpha = opt['framealpha']).set_zorder(100)
         
         return fs_R
     
