@@ -96,6 +96,7 @@ class DSI():
             'hidedsp': False, # If True, hides the surface/boundary
             
             # ----- Plot Format ----- #
+            'czorder': True,         # computed_zorder for 3D plots settings
             'fs': (6, 4),            # Figure size
             'bw': False,             # If True, use black-white template
             'alpha': 0.45,           # Transparency of points
@@ -105,14 +106,17 @@ class DSI():
             'satcolor': 'g',         # Satisfied samples color
             'satmarker': 'o',        # Marker of satisfied points
             'satfill': 'g',          # Marker fill color of satisfied points
+            'satzorder': 5,          # Decides which level to be plotted on
             # Violated samples
             'violabel': 'Violated',  # Violated samples label
             'viocolor': 'r',         # Violated samples color
             'viomarker': 'o',        # Marker of violated points
             'viofill': 'r',          # Marker fill color of violated points
+            'viozorder': 5,          # Decides which level to be plotted on
             # Legend
             'legloc': 'best',        # Legend location
             'framealpha': 0.8,       # Legend box transparency
+            'legendzorder': 100,     # Decides which level to be plotted on
             # 3D view
             'elev': 20,              # Elevation of 3D plot
             'azim': -70,             # Azimuth of 3D plot
@@ -127,6 +131,7 @@ class DSI():
             'dspwidth': 3,       # Thickness of the boundary (2D)
             'dspstyle': '-',     # Line style of the boundary (2D)
             'dspalpha': 0.2,     # Transparency of surface/boundary (3D)
+            'dspzorder': 20,     # To make sure it is plotted ontop of the samples
             
             # ----- NOP Parameters ----- #
             'step_change': 1,    # Step change of expanding AOR in percent
@@ -135,12 +140,14 @@ class DSI():
             'nopwidth':   3,     # Nominal operating point marker thickness
             'nopcolor': 'black', # Nominal operating point marker color
             'nopsize':  100,     # Nominal operating point marker size
+            'nopzorder': 10,     # To make sure it is plotted ontop of the samples
 
             # ----- AOR Parameters ----- #
             'aorlabel': 'AOR',   # Uniform Proven Acceptable Range
             'aorstyle': '--',    # AOR boundary line style
             'aorcolor': 'black', # AOR boundary line color
             'aorwidth': 3,       # AOR boundary line width
+            'aorzorder': 10,     # To make sure it is plotted ontop of the samples
             
             # ----- Hull Parameters ----- #
             'a': None, # Alpha value -> at large alpha,
@@ -282,7 +289,7 @@ class DSI():
             fig, ax = plt.subplots(figsize = opt['fs'])
         elif dim == 3: # 3D plot
             fig = plt.figure()
-            ax = fig.add_subplot(projection = '3d')
+            ax = fig.add_subplot(projection = '3d', computed_zorder = opt['czorder'])
         elif dim > 3:
             print('Dimension of vnames is larger than 3.')
         self.ax = ax
@@ -294,22 +301,24 @@ class DSI():
                 if (opt['hmv'] == 'None') or (opt['hidehmv'] == True):
                     ax.scatter(*zip(*sat[vnames].to_numpy()), marker = opt['satmarker'],\
                         facecolors = opt['satfill'], label = opt['satlabel'],\
-                            color = opt['satcolor'], alpha = opt['alpha'])
+                        color = opt['satcolor'], alpha = opt['alpha'],\
+                        zorder = opt['satzorder'])
                 else:
                     fig.colorbar(sm, label = opt['hmvlabel'])
                     ax.scatter(*zip(*sat[vnames].to_numpy()), marker = opt['satmarker'],\
                         label = opt['satlabel'], color = cmap(norm(sat[opt['hmv']])),\
-                            alpha = opt['alpha'])                
+                        alpha = opt['alpha'], zorder = opt['satzorder'])                
         if opt['hidevio'] == False:
             if novio_flag == False:
                 if (opt['hmv'] == 'None') or (opt['hidehmv'] == True):
                     ax.scatter(*zip(*vio[vnames].to_numpy()), marker = opt['viomarker'],\
                         facecolors = opt['viofill'], label = opt['violabel'],\
-                            color = opt['viocolor'], alpha = opt['alpha'])
+                        color = opt['viocolor'], alpha = opt['alpha'],\
+                        zorder = opt['viozorder'])
                 else:
                     ax.scatter(*zip(*vio[vnames].to_numpy()), marker = opt['viomarker'],\
                         label = opt['violabel'], color = cmap(norm(vio[opt['hmv']])),\
-                            alpha = opt['alpha'])
+                        alpha = opt['alpha'], zorder = opt['viozorder'])
         
         # ----- Design space surface/boundary ----- #
         if opt['hidedsp'] == False:
@@ -322,15 +331,17 @@ class DSI():
                     if i == 0:
                         plt.plot(P[bF][i][:, 0], P[bF][i][:, 1],\
                             linewidth = opt['dspwidth'], linestyle = opt['dspstyle'],\
-                                 color = opt['dspcolor'], label = opt['dsplabel'])
+                            color = opt['dspcolor'], label = opt['dsplabel'],\
+                            zorder = opt['dspzorder'])
                     else:
                         plt.plot(P[bF][i][:, 0], P[bF][i][:, 1],\
                             linewidth = opt['dspwidth'], linestyle = opt['dspstyle'],\
-                                 color = opt['dspcolor'])
+                            color = opt['dspcolor'], zorder = opt['dspzorder'])
 
             if dim == 3:
                 surf = ax.plot_trisurf(*zip(*P), triangles = bF, color = opt['dspcolor'],\
-                    alpha = opt['dspalpha'], label = opt['dsplabel'])
+                    alpha = opt['dspalpha'], label = opt['dsplabel'],\
+                    zorder = opt['dspzorder'])
                 surf._facecolors2d=surf._facecolor3d
                 surf._edgecolors2d=surf._edgecolor3d
         
@@ -365,7 +376,8 @@ class DSI():
             ax.set_zlabel(opt['zlabel'])
             ax.view_init(elev = opt['elev'], azim = opt['azim'])
         if (opt['hmv'] == 'None') or (opt['hidehmv'] == True):
-            plt.legend(loc = opt['legloc'], framealpha = opt['framealpha']).set_zorder(100)
+            plt.legend(loc = opt['legloc'],\
+                framealpha = opt['framealpha']).set_zorder(opt['legendzorder'])
         
         # Saving
         plt.tight_layout()
@@ -460,7 +472,6 @@ class DSI():
         """
         import numpy as np
         import matlab.engine
-        import matplotlib.pyplot as plt
         eng = matlab.engine.start_matlab() # Start instance of matlab engine
         
         shp = self.shp
@@ -634,23 +645,27 @@ class DSI():
         
         # ----- Plotting ----- #
         ax.scatter(*zip(x), s = opt['nopsize'], marker = opt['nopmarker'],\
-             color = opt['nopcolor'], label = opt['noplabel'],\
-                 linewidths = opt['nopwidth'])
+            color = opt['nopcolor'], label = opt['noplabel'],\
+            linewidths = opt['nopwidth'], zorder = opt['nopzorder'])
         if not_in_region_flag:
             pass
         else:
             # ----- 2D space ----- #
             if dim == 2:
                 plt.plot(*zip(*FR), linestyle = opt['aorstyle'], color = opt['aorcolor'],\
-                    linewidth = opt['aorwidth'], label = opt['aorlabel'])
+                    linewidth = opt['aorwidth'], label = opt['aorlabel'],\
+                    zorder = opt['aorzorder'])
             # ----- 3D space ----- #
             if dim == 3: 
                 for i in FR:
-                    plt.plot(*zip(*i[:-1]), color = opt['aorcolor'])
-                plt.plot(*zip(*FR[-1]), color = opt['aorcolor'], label = opt['aorlabel'])
+                    plt.plot(*zip(*i[:-1]), color = opt['aorcolor'],\
+                        zorder = opt['aorzorder'])
+                plt.plot(*zip(*FR[-1]), color = opt['aorcolor'], label = opt['aorlabel'],\
+                    zorder = opt['aorzorder'])
         
         if (opt['hmv'] == 'None') or (opt['hidehmv'] == True):
-            plt.legend(loc = opt['legloc'], framealpha = opt['framealpha']).set_zorder(100)
+            plt.legend(loc = opt['legloc'],\
+                framealpha = opt['framealpha']).set_zorder(opt['legendzorder'])
         
         return fs_R
     
