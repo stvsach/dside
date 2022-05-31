@@ -14,11 +14,19 @@ Use this tool to visualize 2D and 3D design spaces, calculate NOR, and, UPAR.
 
 ```
 import dside
-ds = dside.DSI(df)         # Create instance of design space ds with data from DataFrame df
-p = ds.screen(constraints) # Screen the points using the constraints (dictionary)
-r = ds.plot(vnames)        # Plot the design space and NOR based on vnames (list of variable names for the axes)
-r = ds.flex_space(x)       # Plot the nominal point and flexibility region based on point x (list/numpy array)
+# 1. Create instance of ds with data from DataFrame df
+ds = dside.DSI(df)
+# 2. Screen the points using the constraints (dictionary)
+p = ds.screen(constraints)
+# 3. Find DSp boundaries based on vnames (list of variable names for the axes)
+shp = ds.find_DSp(vnames)
+# 4. Plot the design space and the samples
+r = ds.plot(vnames)
+# 5. Plot the nominal point and AOR based on point x (list/numpy array)
+r = ds.find_AOR(x)
+# 6. Save the results in detailed .txt file
+ds.send_output('output.txt')
 ```
 
-![image](https://github.com/stvsach/dside/blob/master/Fig/2D.jpg)
-![image](https://github.com/stvsach/dside/blob/master/Fig/3D.jpg)
+![image](https://raw.githubusercontent.com/stvsach/dside/df8f03256e3913f1eb020003bfcc23cbde7e1b1c/Fig/2D.svg)
+![image](https://raw.githubusercontent.com/stvsach/dside/df8f03256e3913f1eb020003bfcc23cbde7e1b1c/Fig/3D.svg)
