@@ -96,7 +96,7 @@ class DSI():
             'hidedsp': False, # If True, hides the surface/boundary
             
             # ----- Plot Format ----- #
-            'czorder': True,         # computed_zorder for 3D plots settings
+            'czorder': False,         # computed_zorder for 3D plots settings
             'fs': (6, 4),            # Figure size
             'bw': False,             # If True, use black-white template
             'alpha': 0.45,           # Transparency of points
