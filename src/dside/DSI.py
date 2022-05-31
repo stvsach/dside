@@ -764,9 +764,9 @@ class DSI():
                 f.write(f'{str(i)}\n')
 
         f.close()
-        
-        import pickle
-        with open(output_filename + '.pkl', 'wb') as handle:
-            pickle.dump(report_pkl, handle, protocol = pickle.HIGHEST_PROTOCOL)
-        print(f'Pickle file saved at: {output_filename}.pkl')
+        if rp_pkl:
+            import pickle
+            with open(output_filename + '.pkl', 'wb') as handle:
+                pickle.dump(report_pkl, handle, protocol = pickle.HIGHEST_PROTOCOL)
+            print(f'Pickle file saved at: {output_filename}.pkl')
         return report_pkl
