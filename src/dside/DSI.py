@@ -696,7 +696,8 @@ class DSI():
 
         # DSI results
         f.write(f'\n# -------------------------- RESULTS -------------------------- #\n')
-        f.write(f'Design space size: {rp["space_size"]:10f}\n\n')
+        f.write(f'Design space size: {rp["space_size"]:10f}\n')
+        f.write(f'Number of samples in DSp: {self.sat.shape[0]}\n\n')
         f.write(f'Average {rp["hmv"]["name"]}:    {rp["hmv"]["mean"]:10f}\n')
         f.write(f'DS Maximum {rp["hmv"]["name"]}: {rp["hmv"]["max"]:10f}\n')
         f.write(f'DS Minimum {rp["hmv"]["name"]}: {rp["hmv"]["min"]:10f}\n')
