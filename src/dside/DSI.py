@@ -85,7 +85,6 @@ class DSI():
             'ylabel': 'y',       # y axis label
             'zlabel': 'z',       # z axis label
             'cmap': 'inferno80', # Matplotlib colour map
-            'mycmap': None,      # Use your own cmap (input name of cmap as str)
             'hmv': 'None',       # heat map variable name
             'hmvlabel': 'hmvlabel: heat map var label', # heat map variable label
             
@@ -101,6 +100,10 @@ class DSI():
             'bw': False,             # If True, use black-white template
             'alpha': 0.45,           # Transparency of points
             'font_size': 10,         # Font size
+            # Color bar and map
+            'cbarloc': 'right',   # Colobar location
+            'cbaror': 'vertical', # Colorbar orientation
+            'mycmap': None,       # Use your own cmap (input name of cmap as str)
             # Satisfied samples
             'satlabel': 'Satisfied', # Satisfied samples label
             'satcolor': 'g',         # Satisfied samples color
@@ -304,7 +307,8 @@ class DSI():
                         color = opt['satcolor'], alpha = opt['alpha'],\
                         zorder = opt['satzorder'])
                 else:
-                    fig.colorbar(sm, label = opt['hmvlabel'])
+                    fig.colorbar(sm, label = opt['hmvlabel'],\
+                        location = opt['cbarloc'], orientation = opt['cbaror'])
                     ax.scatter(*zip(*sat[vnames].to_numpy()), marker = opt['satmarker'],\
                         label = opt['satlabel'], color = cmap(norm(sat[opt['hmv']])),\
                         alpha = opt['alpha'], zorder = opt['satzorder'])                
