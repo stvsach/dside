@@ -673,6 +673,29 @@ class DSI():
         
         return fs_R
     
+    def check_points(self, df):
+        """
+        Checks whether points in dataframe df lies within the hull or not.
+        """
+        import numpy as np
+        import matlab.engine
+        import matplotlib.pyplot as plt
+        eng = matlab.engine.start_matlab() # Start instance of matlab engine
+
+        shp = self.shp
+        vnames = self.vnames
+        opt = self.opt
+        sat = self.sat
+
+        cdf = df[vnames]
+
+        l1 = matlab.double(cdf.iloc[:, 0].to_list())
+        l2 = matlab.double(cdf.iloc[:, 1].to_list())
+        l3 = matlab.double(cdf.iloc[:, 2].to_list())
+        y = np.array(eng.inShape(shp, l1, l2, l3))
+        df.insert(len(df.columns), 'In Flag', y[0].tolist())
+        return df
+
     def send_output(self, output_filename = 'DSI_output', appendix = True,\
             rp_pkl = True):
         """
