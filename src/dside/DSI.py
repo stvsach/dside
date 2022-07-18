@@ -154,9 +154,8 @@ class DSI():
             
             # ----- Hull Parameters ----- #
             'a': None, # Alpha value -> at large alpha,
-                       # hull becomes convex. if set to 'critical', MATLAB finds 
-                       # the smallest one. if None: use mean of bounds of dimensions
-            'amul': 1, # Alpha multiplier value (wrt to product of mean axes)
+                       # hull becomes convex. if None: use product of bounds range
+            'amul': 2, # Alpha multiplier value (wrt to a used)
         }
         self.opt = self.default_opt.copy()
         self.bw_template = {'alpha': 1, 'satcolor': 'gray', 'viocolor': 'black', \
@@ -327,23 +326,17 @@ class DSI():
         # ----- Design space surface/boundary ----- #
         if opt['hidedsp'] == False:
             if self.space_size == None:
-                self.space_size, bF, P, self.shp = self.find_DSp(vnames, opt)
-            bF = self.bF
-            P = self.P
+                self.shp = self.find_DSp(vnames, opt)
+            shp = self.shp
             if dim == 2:
-                for i in range(bF.shape[0]):
-                    if i == 0:
-                        plt.plot(P[bF][i][:, 0], P[bF][i][:, 1],\
-                            linewidth = opt['dspwidth'], linestyle = opt['dspstyle'],\
-                            color = opt['dspcolor'], label = opt['dsplabel'],\
-                            zorder = opt['dspzorder'])
-                    else:
-                        plt.plot(P[bF][i][:, 0], P[bF][i][:, 1],\
-                            linewidth = opt['dspwidth'], linestyle = opt['dspstyle'],\
-                            color = opt['dspcolor'], zorder = opt['dspzorder'])
+                plt.plot(*zip(*shp['edges_val']),\
+                    linewidth = opt['dspwidth'], linestyle = opt['dspstyle'],\
+                    color = opt['dspcolor'], label = opt['dsplabel'],\
+                    zorder = opt['dspzorder'])
 
             if dim == 3:
-                surf = ax.plot_trisurf(*zip(*P), triangles = bF, color = opt['dspcolor'],\
+                surf = ax.plot_trisurf(*zip(*shp['P']), triangles = shp['tri'], \
+                    color = opt['dspcolor'],\
                     alpha = opt['dspalpha'], label = opt['dsplabel'],\
                     zorder = opt['dspzorder'])
                 surf._facecolors2d=surf._facecolor3d
@@ -391,20 +384,15 @@ class DSI():
     
     def find_DSp(self, vnames, opt = {}):
         """
-        Create a hull using MATLAB alphashape
+        Create a hull using alphashape
         Depending on alpha (opt['a']) value it can be either convex/concave
         # ----- Hull Parameters ----- #
-        'a': None, # Alpha value -> at large alpha, hull becomes convex.
-        If set to 'critical', MATLAB finds the smallest one. if None: use mean of bounds 
-        of dimensions
-        'amul': 0.5, # Alpha multiplier value (wrt to product of mean axes)
+        'a': None, # Alpha value -> at large alpha, hull becomes convex
+        If None: use the product of axis bounds range
+        'amul': 2, # Alpha multiplier value (wrt to product of mean axes)
         """
-        import matlab.engine
         import numpy as np
         import pandas as pd
-        eng = matlab.engine.start_matlab() # Start instance of matlab engine
-        ev = eng.eval
-        ew = eng.workspace
         
         sat = self.sat
         vio = self.sat
@@ -412,35 +400,168 @@ class DSI():
         self.opt.update(opt) 
         opt = self.opt
         a = opt['a']
+        if a == None:
+            fdf = pd.concat([sat, vio], axis = 0)[vnames]
+            a = np.product(fdf[vnames].max() - fdf[vnames].min())
         amul = opt['amul']
         points = sat[vnames].to_numpy()
-        
-        ew['points'] = matlab.double(points.tolist()) 
-        if a == 'critical':
-            shp = ev(f"alphaShape(points)", nargout = 1)
-        elif a == None:
-            a = pd.concat([sat, vio], axis = 0)[vnames].mean().product()*amul
-            shp = ev(f"alphaShape(points, {a})", nargout = 1)
-        else:
-            shp = ev(f"alphaShape(points, {a})", nargout = 1)
-        ew['shp'] = shp
-        
-        if points.shape[1] == 2:
-            space_size = eng.area(shp)
-        elif points.shape[1] == 3:
-            space_size = eng.volume(shp)
-        
-        bF, P = eng.boundaryFacets(shp, nargout = 2)
-        bF = np.array(bF).astype('int') - 1
-        P = np.array(P)
-        
+        dim = len(vnames)
+        alpha = a*amul
+        self.alpha = alpha
+
+        if dim == 2:
+            shp = self.alphashape_2D(points, alpha)
+        elif dim == 3:
+            shp = self.alphashape_3D(points, alpha)
+        space_size = shp['size']
+                
         self.shp = shp
         self.space_size = space_size
-        self.bF = bF
-        self.P = P
+        self.bF = shp['tri']
+        self.P = shp['P']
         self.report['space_size'] = space_size
-        return space_size, bF, P, shp
+        return shp
     
+    def alphashape_2D(self, P, alpha):
+        """
+        Calculate the alphashape boundary from a point cloud P (2D np array)
+        Adapted from Kostas Markakis (https://stackoverflow.com/users/10105748/kostas-markakis)
+        https://stackoverflow.com/a/62951837
+        """
+        from shapely.geometry import MultiLineString
+        from shapely.ops import unary_union, polygonize
+        from scipy.spatial import Delaunay
+        from collections import Counter
+        import numpy as np
+        import itertools
+
+        v = Delaunay(P).vertices
+        # Calculate the sides of the triangles
+        a = (P[v][:, 0][:, 0] - P[v][:, 1][:, 0])**2 + \
+            (P[v][:, 0][:, 1] - P[v][:, 1][:, 1])**2
+        b = (P[v][:, 1][:, 0] - P[v][:, 2][:, 0])**2 + \
+            (P[v][:, 1][:, 1] - P[v][:, 2][:, 1])**2
+        c = (P[v][:, 2][:, 0] - P[v][:, 0][:, 0])**2 + \
+            (P[v][:, 2][:, 1] - P[v][:, 0][:, 1])**2
+        a, b, c = np.sqrt([a, b, c])
+        s = (a + b + c)*0.5
+        area = np.sqrt(s*(s - a)*(s - b)*(s - c)) # area from Heron's formula
+        alpha_filter = a*b*c/(4.0*area) < alpha
+
+        # Filter vertices of alpha shape based on alpha radius
+        tri = v[alpha_filter]
+        # edges = np.vstack([edges[:, 0:2], edges[:, 1:3], np.delete(edges, 2, 1)])
+        # edges = list(zip(edges[:, 0], edges[:, 1]))
+        edges = [tuple(sorted(cb)) for e in tri for cb in itertools.combinations(e, 2)]
+
+        count = Counter(edges)
+        # Keep only edges that appear one time (concave hull edges)
+        edges = [e for e, c in count.items() if c == 1]
+        edges_val = [(P[e[0]], P[e[1]]) for e in edges]
+
+        # Return points in order for plotting
+        ml = MultiLineString(edges_val)
+        poly = polygonize(ml)
+        hull = unary_union(list(poly))
+        hull_vertices = hull.exterior.coords.xy
+        h = np.zeros((len(hull_vertices[0]), 2))
+        h[:, 0] = hull_vertices[0]
+        h[:, 1] = hull_vertices[1]
+
+        shp = {}
+        shp['P'] = P
+        shp['verts'] = np.unique(edges)
+        shp['tri'] = tri
+        shp['tetras'] = None
+        shp['edges'] = edges
+        shp['edges_val'] = h
+
+        # Area of alpha shape
+        v = tri
+        a = (P[v][:, 0][:, 0] - P[v][:, 1][:, 0])**2 + \
+            (P[v][:, 0][:, 1] - P[v][:, 1][:, 1])**2
+        b = (P[v][:, 1][:, 0] - P[v][:, 2][:, 0])**2 + \
+            (P[v][:, 1][:, 1] - P[v][:, 2][:, 1])**2
+        c = (P[v][:, 2][:, 0] - P[v][:, 0][:, 0])**2 + \
+            (P[v][:, 2][:, 1] - P[v][:, 0][:, 1])**2
+        a, b, c = np.sqrt([a, b, c])
+
+        s = (a + b + c)*0.5
+        area = np.sqrt(s*(s - a)*(s - b)*(s - c)) # area from Heron's formula
+        shp['size'] = np.sum(area)
+        return shp
+
+    def alphashape_3D(self, P, alpha):
+        """
+        Calculate the alphashape boundary from a point cloud P (3D np array)
+        Adapted from Geun (https://stackoverflow.com/users/9091202/geun)
+        https://stackoverflow.com/a/58113037
+
+        Compute the alpha shape (concave hull) of a set of 3D points.
+        Parameters:
+            pos - np.array of shape (n,3) points.
+            alpha - alpha value.
+        return
+            outer surface vertex indices, edge indices, and triangle indices
+        """
+        from scipy.spatial import Delaunay
+        import numpy as np
+        from collections import defaultdict
+
+        tetra = Delaunay(P)
+        # Find radius of the circumsphere.
+        # By definition, radius of the sphere fitting inside the tetrahedral needs 
+        # to be smaller than alpha value
+        # http://mathworld.wolfram.com/Circumsphere.html
+
+        tetrapos = np.take(P, tetra.vertices,axis=0)
+        normsq = np.sum(tetrapos**2, axis=2)[:, :, None]
+        ones = np.ones((tetrapos.shape[0], tetrapos.shape[1], 1))
+
+        a  =  np.linalg.det(np.concatenate((tetrapos, ones), axis=2))
+        a[a == 0] = 1e-30
+        Dx =  np.linalg.det(np.concatenate((normsq, tetrapos[:,:,[1,2]], ones), axis = 2))
+        Dy = -np.linalg.det(np.concatenate((normsq, tetrapos[:,:,[0,2]], ones), axis = 2))
+        Dz =  np.linalg.det(np.concatenate((normsq, tetrapos[:,:,[0,1]], ones), axis = 2))
+        c  =  np.linalg.det(np.concatenate((normsq, tetrapos), axis = 2))
+        r  =  np.sqrt(Dx**2 + Dy**2 + Dz**2 - 4*a*c)/(2*np.abs(a))
+
+        # Find tetrahedrals
+        tetras = tetra.vertices[r<alpha, :]
+
+        # triangles
+        triComb = np.array([(0, 1, 2), (0, 1, 3), (0, 2, 3), (1, 2, 3)])
+        triangles = tetras[:, triComb].reshape(-1, 3)
+        triangles = np.sort(triangles, axis = 1)
+
+        # Remove triangles that occurs twice, because they are within shapes
+        trianglesDict = defaultdict(int)
+        for tri in triangles:
+            trianglesDict[tuple(tri)] += 1
+        triangles = np.array([tri for tri in trianglesDict if trianglesDict[tri] == 1])
+
+        #edges
+        edgeComb = np.array([(0, 1), (0, 2), (1, 2)])
+        edges = triangles[:, edgeComb].reshape(-1, 2)
+        edges = np.sort(edges, axis = 1)
+        edges = np.unique(edges, axis = 0)
+
+        vertices = np.unique(edges)
+
+        shp = {}
+        shp['P'] = P
+        shp['verts'] = vertices
+        shp['tri'] = triangles
+        shp['edges'] = edges
+        shp['tetras'] = tetras
+        shp['edges_val'] = None
+
+        volume = 0
+        for v in P[tetras]:
+            volume += np.abs(np.dot(v[0] - v[3], np.cross(v[1] - v[3], v[2] - v[3])))/6
+        shp['size'] = volume
+        return shp
+
     def collect_frames(self, anielev = 10, sfolder = 'animation', sname = 'plot',\
          leading_no = 0, sdpi = 100):
         """
@@ -470,13 +591,54 @@ class DSI():
                 plt.savefig(f'{sfolder}{sname}_frame_{leading_no + ii:04}.png',\
                     dpi = sdpi)
     
+    def inside3D(self, x):
+        """
+        Returns False if x is not in self.shp, True otherwise (3D)
+        """
+        import numpy as np
+        shp = self.shp
+        
+        node_coordinates = shp['P']
+        node_ids = shp['tetras']
+        p = np.array(x)
+
+        ori=node_coordinates[node_ids[:,0],:]
+        v1=node_coordinates[node_ids[:,1],:]-ori
+        v2=node_coordinates[node_ids[:,2],:]-ori
+        v3=node_coordinates[node_ids[:,3],:]-ori
+        n_tet=len(node_ids)
+        v1r=v1.T.reshape((3,1,n_tet))
+        v2r=v2.T.reshape((3,1,n_tet))
+        v3r=v3.T.reshape((3,1,n_tet))
+        mat = np.concatenate((v1r,v2r,v3r), axis=1)
+        inv_mat = np.linalg.inv(mat.T).T    # https://stackoverflow.com/a/41851137/12056867        
+        if p.size==3:
+            p=p.reshape((1,3))
+        n_p=p.shape[0]
+        orir=np.repeat(ori[:,:,np.newaxis], n_p, axis=2)
+        newp=np.einsum('imk,kmj->kij',inv_mat,p.T-orir)
+        val=np.all(newp>=0, axis=1) & np.all(newp <=1, axis=1) & (np.sum(newp, axis=1)<=1)
+        id_tet, id_p = np.nonzero(val)
+        res = -np.ones(n_p, dtype=id_tet.dtype) # Sentinel value
+        res[id_p]=id_tet
+
+        V = shp['P'][shp['tetras'][res][0]]
+        p = x
+        # Find the transform matrix from orthogonal to tetrahedron system
+        v1 = V[1]-V[0] ; v2 = V[2]-V[0] ; v3 = V[3]-V[0]
+        mat = np.array((v1,v2,v3)).T
+        # mat is 3x3 here
+        M1 = np.linalg.inv(mat)
+        # apply the transform to P (v1 is the origin)
+        newp = M1.dot(p - V[0])
+        # perform test
+        return (np.all(newp>=0) and np.all(newp <=1) and np.sum(newp)<=1)
+
     def check_point(self, x):
         """
         Checks whether point x lies within the hull or not.
         """
         import numpy as np
-        import matlab.engine
-        eng = matlab.engine.start_matlab() # Start instance of matlab engine
         
         shp = self.shp
         vnames = self.vnames
@@ -486,7 +648,14 @@ class DSI():
         dim = len(vnames)
         step_change = opt['step_change']
         df = self.df
-                        
+        
+        if dim == 2:
+            from shapely.geometry import Point, Polygon
+            poly = Polygon(shp['edges_val'])
+            inside = lambda x: poly.contains(Point(x[0], x[1]))
+        else:
+            inside = self.inside3D
+
         # Finding space boundary
         inputs_max = df[vnames].max().to_numpy()
         inputs_min = df[vnames].min().to_numpy()
@@ -494,7 +663,7 @@ class DSI():
         pc = step_change/100
         
         not_in_region_flag = False
-        if eng.inShape(shp, matlab.double(list(x))) == False:
+        if inside(x) == False:
             print('x is not inside DSp.')
             not_in_region_flag = True
             fs_R = {'x': x, 'FR': 'N/A', 'rmax': 'N/A', 'rmin': 'N/A',
@@ -511,8 +680,7 @@ class DSI():
                         [x[0] + pc*inputs_range[0], x[1] + pc*inputs_range[1]],
                         [x[0] + pc*inputs_range[0], x[1] - pc*inputs_range[1]]]
                         )
-                    flag = False in [eng.inShape(shp, matlab.double(list(fsi[i])))\
-                        for i in range(fsi.shape[0])]
+                    flag = False in [inside(fsi[i]) for i in range(fsi.shape[0])]
                     pc += step_change/100
 
                 pc = (step_change/100)/100
@@ -525,8 +693,7 @@ class DSI():
                         [fsi[3, 0] - pc*inputs_range[0], fsi[3, 1] + pc*inputs_range[1]]
                         ]
                     fs = np.array(fs)
-                    flag = False in [eng.inShape(shp, matlab.double(list(fs[i])))\
-                        for i in range(fs.shape[0])]
+                    flag = False in [inside(fs[i]) for i in range(fs.shape[0])]
                     pc += (step_change/100)/100
                     
                 fs = fs.tolist()
@@ -556,8 +723,7 @@ class DSI():
                         [x[0] - pc*inputs_range[0],\
                         x[1] + pc*inputs_range[1], x[2] + pc*inputs_range[2]]]
                                     )
-                    flag = False in [eng.inShape(shp, matlab.double(list(fsi[i])))\
-                        for i in range(fsi.shape[0])]
+                    flag = False in [inside(fsi[i]) for i in range(fsi.shape[0])]
                     pc += step_change/100
 
                 pc = (step_change/100)/100
@@ -581,8 +747,7 @@ class DSI():
                         fsi[7, 1] - pc*inputs_range[1], fsi[7, 2] - pc*inputs_range[2]]]
                     fs = np.array(fs)
                     fs_arr = fs
-                    flag = False in [eng.inShape(shp, matlab.double(list(fs[i])))\
-                        for i in range(fs.shape[0])]
+                    flag = False in [inside(fs[i]) for i in range(fs.shape[0])]
                     pc += (step_change/100)/100
                     
                 FR = [[fs[0], fs[1], fs[4], fs[2], fs[0]],
