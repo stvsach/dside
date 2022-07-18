@@ -29,5 +29,6 @@ setup(
     py_modules=['dside'],                    # Name of the python package
     install_requires=['numpy',
                       'matplotlib',
-                      'pandas']              # Install other dependencies if any
+                      'pandas',
+                      'shapely']              # Install other dependencies if any
 )
