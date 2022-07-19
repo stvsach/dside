@@ -151,11 +151,24 @@ class DSI():
             'aorcolor': 'black', # AOR boundary line color
             'aorwidth': 4,       # AOR boundary line width
             'aorzorder': 10,     # To make sure it is plotted ontop of the samples
+            'AORlb': 0,          # Bisection params (lower bound)
+            'AORub': 1,          # Bisection params (upper bound)
+            'AORtol': 0.001,     # Bisection params - tolerance
+            'AORmaxiter': 50,    # Bisection params - max iterations
+            'AORprintF': False,  # Print bisection output
             
             # ----- Hull Parameters ----- #
-            'a': None, # Alpha value -> at large alpha,
-                       # hull becomes convex. if None: use product of bounds range
-            'amul': 1, # Alpha multiplier value (wrt to a used)
+            'a': None,        # Alpha value -> at large alpha,
+                              # hull becomes convex. if None: use product of bounds range
+            'amul': 1,        # Alpha multiplier value (wrt to a used)
+            'opt_amul': True, # If True, use bisection to find largest amul with no vio
+                              # in DSp
+            'maxiter': 50,    # Maximum bisection iterations
+            'tol': 0.001,     # Bisection tolerance (on the MV which is amul)
+            'lb': 0.001,      # Lower bound of initial bisection run
+            'ub': 5,          # Upper bound of initial bisection run
+            'printF': False,  # If true, print iter details
+            'maxvp': 0,       # Maximum allowed percentage of vio in DSp
         }
         self.opt = self.default_opt.copy()
         self.bw_template = {'alpha': 1, 'satcolor': 'gray', 'viocolor': 'black', \
@@ -395,7 +408,9 @@ class DSI():
         import pandas as pd
         
         sat = self.sat
-        vio = self.sat
+        points = sat[vnames].to_numpy()
+        vio = self.vio
+        vpoints = vio[vnames].to_numpy()
         self.opt.update({'vnames': vnames})
         self.opt.update(opt) 
         opt = self.opt
@@ -403,23 +418,71 @@ class DSI():
         if a == None:
             fdf = pd.concat([sat, vio], axis = 0)[vnames]
             a = np.product(fdf[vnames].max() - fdf[vnames].min())
-        amul = opt['amul']
-        points = sat[vnames].to_numpy()
-        dim = len(vnames)
-        alpha = a*amul
-        self.alpha = alpha
 
+        dim = len(vnames)
         if dim == 2:
-            shp = self.alphashape_2D(points, alpha)
+            find_shp = self.alphashape_2D
+            inside = self.inside2D
         elif dim == 3:
-            shp = self.alphashape_3D(points, alpha)
+            find_shp = self.alphashape_3D
+            inside = self.inside3D
+
+        if opt['opt_amul'] == False: # Single run
+            amul = opt['amul']
+            alpha = a*amul
+            self.alpha = alpha
+            shp = find_shp(points, alpha)
+            shp['amul'] = amul
+            sol_flag = f'No optimisation performed'
+
+        elif opt['opt_amul'] == True: # Use bisection
+            opt_log = []
+            tol = opt['tol']
+            lb = opt['lb']
+            print_flag = opt['printF']
+            ub = opt['ub']
+            maxiter = opt['maxiter']
+            maxvnum = opt['maxvp']*self.df.shape[0]
+            # Bisection algorithm
+            for i in range(maxiter):
+                mp = lb + (ub - lb)/2
+                shp = find_shp(points, a*mp)
+                shp['amul'] = mp
+                shp['iter'] = i + 1
+                opt_log.append(shp)
+                self.shp = shp
+                r = inside(vpoints, shp)
+                flag = True in r
+                vnum = vio[r].shape[0]
+                if vnum <= maxvnum: # early break based on maxvnum
+                    if print_flag:
+                        print(i + 1, mp, flag)
+                    sol_flag = f'vnum is LE maxvnum ({opt["maxvp"]*100:.1f}%): {vnum} <= {maxvnum}'
+                    break
+                elif flag == True:
+                    ub = mp
+                elif flag == False:
+                    lb = mp
+                    if ub - lb <= tol:
+                        if print_flag:
+                            print(i + 1, mp, flag)
+                        sol_flag = f'[{i + 1}] Optimal amul found: {mp:6f}   Gap: {ub - lb:6f}'
+                        break
+                if print_flag:
+                    print(i + 1, mp, flag)
+            if (i + 1) == maxiter:
+                sol_flag = f'Max iterations reached: {maxiter} iterations  amul: {mp:6f}'
+        if print_flag:
+            print(sol_flag)
+
         space_size = shp['size']
-                
         self.shp = shp
         self.space_size = space_size
         self.bF = shp['tri']
         self.P = shp['P']
         self.report['space_size'] = space_size
+        self.report['sol_flag'] = sol_flag
+        self.report['opt_log'] = opt_log
         return shp
     
     def alphashape_2D(self, P, alpha):
@@ -475,6 +538,7 @@ class DSI():
         shp['tetras'] = None
         shp['edges'] = edges
         shp['edges_val'] = h
+        shp['alpha'] = alpha
 
         # Area of alpha shape
         v = tri
@@ -555,6 +619,7 @@ class DSI():
         shp['edges'] = edges
         shp['tetras'] = tetras
         shp['edges_val'] = None
+        shp['alpha'] = alpha
 
         volume = 0
         for v in P[tetras]:
@@ -590,14 +655,15 @@ class DSI():
                 ax.azim += 0.5
                 plt.savefig(f'{sfolder}{sname}_frame_{leading_no + ii:04}.png',\
                     dpi = sdpi)
-    def inside2D(self, x):
+    def inside2D(self, x, shp = None):
         """
         Returns False if x is not in self.shp, True otherwise (2D)
         x: list of [x, y], or [[x1, y1], [x2, y2], ...]
         """
         import numpy as np
         from shapely.geometry import Point, Polygon
-        shp = self.shp
+        if shp == None:
+            shp = self.shp
         poly = Polygon(shp['edges_val'])
         dim = len(np.array(x).shape)
 
@@ -610,7 +676,7 @@ class DSI():
             out = out[0]
         return out
     
-    def inside3D(self, x):
+    def inside3D(self, x, shp = None):
         """
         Returns False if x is not in self.shp, True otherwise (3D)
         x: list of [x, y, z], or [[x1, y1, z1], [x2, y2, z2], ...]
@@ -618,7 +684,8 @@ class DSI():
         https://stackoverflow.com/a/41851137/12056867
         """
         import numpy as np
-        shp = self.shp
+        if shp == None:
+            shp = self.shp
         dim = len(np.array(x).shape)
 
         # Find which tetrahedron the point lies in
@@ -671,27 +738,30 @@ class DSI():
         Checks whether point x lies within the hull or not.
         """
         import numpy as np
-        
-        shp = self.shp
-        vnames = self.vnames
+        vn = self.vnames
         opt = self.opt
         sat = self.sat
-        
-        dim = len(vnames)
-        step_change = opt['step_change']
         df = self.df
-        
+
+        # Bisection params
+        pclb = opt['AORlb']
+        pcub = opt['AORub']
+        tol = opt['AORtol']
+        maxiter = opt['AORmaxiter']
+        print_flag = opt['AORprintF']
+        AORopt_log = []
+
+        dim = len(vn)
         if dim == 2:
             inside = self.inside2D
-        else:
+        elif dim == 3:
             inside = self.inside3D
 
-        # Finding space boundary
-        inputs_max = df[vnames].max().to_numpy()
-        inputs_min = df[vnames].min().to_numpy()
+        inputs_max = df[vn].max().to_numpy()
+        inputs_min = df[vn].min().to_numpy()
         inputs_range = inputs_max - inputs_min
-        pc = step_change/100
-        
+
+
         not_in_region_flag = False
         if inside(x) == False:
             print('x is not inside DSp.')
@@ -699,100 +769,67 @@ class DSI():
             fs_R = {'x': x, 'FR': 'N/A', 'rmax': 'N/A', 'rmin': 'N/A',
             'space_size': 'N/A', 'plusmin': 'N/A', 'nosam': 'N/A', 
             'hmv': 'N/A', 'hmv_sam_flag': 'N/A', 'not_in_region_flag': not_in_region_flag}
-        else:
-            # ----- 2D space ----- #
+        else: # Bisection
+            for i in range(maxiter):
+                pc = pclb + (pcub - pclb)/2
+                gap = pcub - pclb
+                if dim == 2:
+                    verts = np.array(
+                            [[x[0] - pc*inputs_range[0], x[1] - pc*inputs_range[1]],
+                            [x[0] - pc*inputs_range[0], x[1] + pc*inputs_range[1]],
+                            [x[0] + pc*inputs_range[0], x[1] + pc*inputs_range[1]],
+                            [x[0] + pc*inputs_range[0], x[1] - pc*inputs_range[1]]]
+                                )
+                elif dim == 3:
+                    verts = np.array(
+                            [[x[0] - pc*inputs_range[0],\
+                            x[1] - pc*inputs_range[1], x[2] - pc*inputs_range[2]],
+                            [x[0] + pc*inputs_range[0],\
+                            x[1] - pc*inputs_range[1], x[2] - pc*inputs_range[2]],
+                            [x[0] - pc*inputs_range[0],\
+                            x[1] + pc*inputs_range[1], x[2] - pc*inputs_range[2]],
+                            [x[0] - pc*inputs_range[0],\
+                            x[1] - pc*inputs_range[1], x[2] + pc*inputs_range[2]],
+                            [x[0] + pc*inputs_range[0],\
+                            x[1] + pc*inputs_range[1], x[2] - pc*inputs_range[2]],
+                            [x[0] + pc*inputs_range[0],\
+                            x[1] + pc*inputs_range[1], x[2] + pc*inputs_range[2]],
+                            [x[0] + pc*inputs_range[0],\
+                            x[1] - pc*inputs_range[1], x[2] + pc*inputs_range[2]],
+                            [x[0] - pc*inputs_range[0],\
+                            x[1] + pc*inputs_range[1], x[2] + pc*inputs_range[2]]]
+                                )
+                flag = False in [inside(verts[i]) for i in range(verts.shape[0])]
+                AORopt_log.append({'iter': i+1, 'pc': pc, 'gap': gap, 'flag': flag, 'verts': verts})
+                if flag == False:
+                    pclb = pc
+                    if gap <= tol:
+                        if print_flag:
+                            print(i+1, flag, gap)
+                        break
+                elif flag == True:
+                    pcub = pc
+                if print_flag:
+                    print(i+1, flag, gap)
+
             if dim == 2:
-                flag = False
-                while flag == False: # Going outwards
-                    fsi   = np.array(
-                        [[x[0] - pc*inputs_range[0], x[1] - pc*inputs_range[1]],
-                        [x[0] - pc*inputs_range[0], x[1] + pc*inputs_range[1]],
-                        [x[0] + pc*inputs_range[0], x[1] + pc*inputs_range[1]],
-                        [x[0] + pc*inputs_range[0], x[1] - pc*inputs_range[1]]]
-                        )
-                    flag = False in [inside(fsi[i]) for i in range(fsi.shape[0])]
-                    pc += step_change/100
-
-                pc = (step_change/100)/100
-                flag = True
-                while flag == True: # Going inwards
-                    fs = [
-                        [fsi[0, 0] + pc*inputs_range[0], fsi[0, 1] + pc*inputs_range[1]],
-                        [fsi[1, 0] + pc*inputs_range[0], fsi[1, 1] - pc*inputs_range[1]],
-                        [fsi[2, 0] - pc*inputs_range[0], fsi[2, 1] - pc*inputs_range[1]],
-                        [fsi[3, 0] - pc*inputs_range[0], fsi[3, 1] + pc*inputs_range[1]]
-                        ]
-                    fs = np.array(fs)
-                    flag = False in [inside(fs[i]) for i in range(fs.shape[0])]
-                    pc += (step_change/100)/100
-                    
-                fs = fs.tolist()
-                fs.append(fs[0])
-                fs_arr = np.array(fs)
-                FR = np.array(fs)
-                
-            # ----- 3D space ----- #
-            if dim == 3: 
-                flag = False
-                while flag == False: # Going outwards
-                    fsi = np.array(
-                        [[x[0] - pc*inputs_range[0],\
-                        x[1] - pc*inputs_range[1], x[2] - pc*inputs_range[2]],
-                        [x[0] + pc*inputs_range[0],\
-                        x[1] - pc*inputs_range[1], x[2] - pc*inputs_range[2]],
-                        [x[0] - pc*inputs_range[0],\
-                        x[1] + pc*inputs_range[1], x[2] - pc*inputs_range[2]],
-                        [x[0] - pc*inputs_range[0],\
-                        x[1] - pc*inputs_range[1], x[2] + pc*inputs_range[2]],
-                        [x[0] + pc*inputs_range[0],\
-                        x[1] + pc*inputs_range[1], x[2] - pc*inputs_range[2]],
-                        [x[0] + pc*inputs_range[0],\
-                        x[1] + pc*inputs_range[1], x[2] + pc*inputs_range[2]],
-                        [x[0] + pc*inputs_range[0],\
-                        x[1] - pc*inputs_range[1], x[2] + pc*inputs_range[2]],
-                        [x[0] - pc*inputs_range[0],\
-                        x[1] + pc*inputs_range[1], x[2] + pc*inputs_range[2]]]
-                                    )
-                    flag = False in [inside(fsi[i]) for i in range(fsi.shape[0])]
-                    pc += step_change/100
-
-                pc = (step_change/100)/100
-                flag = True
-                while flag == True: # Going inwards
-                    fs = [[fsi[0, 0] + pc*inputs_range[0],\
-                         fsi[0, 1] + pc*inputs_range[1], fsi[0, 2] + pc*inputs_range[2]],
-                        [fsi[1, 0] - pc*inputs_range[0],\
-                        fsi[1, 1] + pc*inputs_range[1], fsi[1, 2] + pc*inputs_range[2]],
-                        [fsi[2, 0] + pc*inputs_range[0],\
-                        fsi[2, 1] - pc*inputs_range[1], fsi[2, 2] + pc*inputs_range[2]],
-                        [fsi[3, 0] + pc*inputs_range[0],\
-                        fsi[3, 1] + pc*inputs_range[1], fsi[3, 2] - pc*inputs_range[2]],
-                        [fsi[4, 0] - pc*inputs_range[0],\
-                        fsi[4, 1] - pc*inputs_range[1], fsi[4, 2] + pc*inputs_range[2]],
-                        [fsi[5, 0] - pc*inputs_range[0],\
-                        fsi[5, 1] - pc*inputs_range[1], fsi[5, 2] - pc*inputs_range[2]],
-                        [fsi[6, 0] - pc*inputs_range[0],\
-                        fsi[6, 1] + pc*inputs_range[1], fsi[6, 2] - pc*inputs_range[2]],
-                        [fsi[7, 0] + pc*inputs_range[0],\
-                        fsi[7, 1] - pc*inputs_range[1], fsi[7, 2] - pc*inputs_range[2]]]
-                    fs = np.array(fs)
-                    fs_arr = fs
-                    flag = False in [inside(fs[i]) for i in range(fs.shape[0])]
-                    pc += (step_change/100)/100
-                    
-                FR = [[fs[0], fs[1], fs[4], fs[2], fs[0]],
-                        [fs[0], fs[3], fs[6], fs[1], fs[0]],
-                        [fs[3], fs[7], fs[5], fs[6], fs[3]], 
-                        [fs[6], fs[1], fs[4], fs[5], fs[6]],
-                        [fs[7], fs[3], fs[0], fs[2], fs[7]],
-                        [fs[2], fs[4], fs[5], fs[7], fs[2]]]
+                verts = verts.tolist()
+                verts.append(verts[0])
+                FR = np.array(verts)
+            elif dim == 3:
+                FR = [[verts[0], verts[1], verts[4], verts[2], verts[0]],
+                    [verts[0], verts[3], verts[6], verts[1], verts[0]],
+                    [verts[3], verts[7], verts[5], verts[6], verts[3]], 
+                    [verts[6], verts[1], verts[4], verts[5], verts[6]],
+                    [verts[7], verts[3], verts[0], verts[2], verts[7]],
+                    [verts[2], verts[4], verts[5], verts[7], verts[2]]]
 
             # ----- KPIs ----- #
-            rmax = fs_arr.max(axis = 0)
-            rmin = fs_arr.min(axis = 0)
+            rmax = np.array(verts).max(axis = 0)
+            rmin = np.array(verts).min(axis = 0)
             fs_size = (rmax - rmin).prod()
             plusmin = (rmax - rmin)/2
-            
+
             # ----- Heat map variable ----- #
             hmv_fs_R = {'name': opt['hmv'], 'mean': '-', 'max': '-', 'max_sample': '-', 
             'min': '-',  'min_sample': '-', 'fs_all_samples': '-'}
@@ -801,9 +838,9 @@ class DSI():
             if opt['hmv'] != 'None':
                 fs_df = sat.copy()
                 for i in range(dim):
-                    fs_df = fs_df[fs_df[vnames[i]] <= rmax[i]]
+                    fs_df = fs_df[fs_df[vn[i]] <= rmax[i]]
                 for i in range(dim):
-                    fs_df = fs_df[fs_df[vnames[i]] >= rmin[i]]
+                    fs_df = fs_df[fs_df[vn[i]] >= rmin[i]]
                 if fs_df.shape[0] == 0:
                     print('No samples inside AOR available.')
                     no_samples_flag = True
@@ -816,8 +853,8 @@ class DSI():
                     hmv_fs_R['fs_all_samples'] = fs_df
             fs_R = {'x': x, 'FR': FR, 'rmax': rmax, 'rmin': rmin, 'space_size': fs_size, 
                 'plusmin': plusmin, 'nosam': fs_df.shape[0], 'hmv': hmv_fs_R, 
-                'hmv_sam_flag': no_samples_flag, 'not_in_region_flag': not_in_region_flag}
-                
+                'hmv_sam_flag': no_samples_flag, 'not_in_region_flag': not_in_region_flag, 'AORopt_log': AORopt_log}
+
         self.all_x.update({str(x): fs_R})
         return fs_R
         
@@ -868,29 +905,6 @@ class DSI():
         
         return fs_R
     
-    def check_points(self, df):
-        """
-        Checks whether points in dataframe df lies within the hull or not.
-        """
-        import numpy as np
-        import matlab.engine
-        import matplotlib.pyplot as plt
-        eng = matlab.engine.start_matlab() # Start instance of matlab engine
-
-        shp = self.shp
-        vnames = self.vnames
-        opt = self.opt
-        sat = self.sat
-
-        cdf = df[vnames]
-
-        l1 = matlab.double(cdf.iloc[:, 0].to_list())
-        l2 = matlab.double(cdf.iloc[:, 1].to_list())
-        l3 = matlab.double(cdf.iloc[:, 2].to_list())
-        y = np.array(eng.inShape(shp, l1, l2, l3))
-        df.insert(len(df.columns), 'In Flag', y[0].tolist())
-        return df
-
     def send_output(self, output_filename = 'DSI_output', appendix = True,\
             rp_pkl = True):
         """
