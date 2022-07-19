@@ -1,16 +1,15 @@
 # dside
-Design space identification tool for plotting and analysing design spaces (2D and 3D). Constraints with respect to key performance indicators (KPIs) are used to categorize the samples. Convex hull algorithm (alpha shape on MATLAB) is used to identify design space (DSp) and quantifying the size of the space. Given nominal operating point (NOP), an acceptable operating region (AOR) can be quantified to find the maximum multivariate allowable disturbance that the process can still handle while satisfying all constraints (multivariate proven acceptable range - MPAR).
+Design space identification tool for plotting and analysing design spaces (2D and 3D). Constraints with respect to key performance indicators (KPIs) are used to categorize the samples. Concave hulls (alpha shape) are used to identify design space (DSp) and quantify the size of the space. Given nominal operating point (NOP), an acceptable operating region (AOR) can be quantified to find the maximum multivariate allowable disturbance that the process can still handle while satisfying all constraints (multivariate proven acceptable range - MPAR).
 
 
 ## Installation
-Currently, dside requires pandas, numpy, matplotlib, and matlab engine. dside can be installd with the following commands.
+Currently, dside requires pandas, numpy, matplotlib, and shapely. dside can be installd with the following commands.
 ```bash
 pip install dside
 ```
-For more information on how to install matlab engine please checkout this link: https://uk.mathworks.com/help/matlab/matlab_external/install-the-matlab-engine-for-python.html.
 
 ## Quick Overview
-Use this tool to visualize 2D and 3D design spaces, calculate NOR, and, UPAR.
+Use this tool to visualize 2D and 3D design spaces, calculate NOR, and, MPAR.
 
 ```
 import dside
