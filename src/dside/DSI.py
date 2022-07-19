@@ -95,30 +95,30 @@ class DSI():
             'hidedsp': False, # If True, hides the surface/boundary
             
             # ----- Plot Format ----- #
-            'czorder': False,         # computed_zorder for 3D plots settings
-            'fs': (6, 4),            # Figure size
-            'bw': False,             # If True, use black-white template
-            'alpha': 0.45,           # Transparency of points
-            'font_size': 10,         # Font size
+            'czorder': False,     # computed_zorder for 3D plots settings
+            'fs': (6, 4),         # Figure size
+            'bw': False,          # If True, use black-white template
+            'alpha': 1,           # Transparency of points
+            'font_size': 14,      # Font size
             # Color bar and map
             'cbarloc': 'right',   # Colobar location
             'cbaror': 'vertical', # Colorbar orientation
-            'mycmap': None,       # Use your own cmap (input name of cmap as str)
+            'mycmap': 'viridis',  # Use your own cmap (input name of cmap as str)
             # Satisfied samples
-            'satlabel': 'Satisfied', # Satisfied samples label
-            'satcolor': 'g',         # Satisfied samples color
-            'satmarker': 'o',        # Marker of satisfied points
-            'satfill': 'g',          # Marker fill color of satisfied points
-            'satzorder': 5,          # Decides which level to be plotted on
+            'satlabel': 'Sat',     # Satisfied samples label
+            'satcolor': '#FF9000', # Satisfied samples color
+            'satmarker': '.',      # Marker of satisfied points
+            'satfill': '#FF9000',  # Marker fill color of satisfied points
+            'satzorder': 5,        # Decides which level to be plotted on
             # Violated samples
-            'violabel': 'Violated',  # Violated samples label
-            'viocolor': 'r',         # Violated samples color
-            'viomarker': 'o',        # Marker of violated points
-            'viofill': 'r',          # Marker fill color of violated points
-            'viozorder': 5,          # Decides which level to be plotted on
+            'violabel': 'Vio',     # Violated samples label
+            'viocolor': '#005DC1', # Violated samples color
+            'viomarker': '.',      # Marker of violated points
+            'viofill': '#005DC1',  # Marker fill color of violated points
+            'viozorder': 5,        # Decides which level to be plotted on
             # Legend
-            'legloc': 'best',        # Legend location
-            'framealpha': 0.8,       # Legend box transparency
+            'legloc': 'upper right', # Legend location
+            'framealpha': 1,         # Legend box transparency
             'legendzorder': 100,     # Decides which level to be plotted on
             # 3D view
             'elev': 20,              # Elevation of 3D plot
@@ -131,7 +131,7 @@ class DSI():
             # ----- Design Space Parameters ----- #
             'dsplabel': 'DSp',   # Label of surface/boundary
             'dspcolor': 'black', # Color of the surface/boundary (both)
-            'dspwidth': 3,       # Thickness of the boundary (2D)
+            'dspwidth': 4,       # Thickness of the boundary (2D)
             'dspstyle': '-',     # Line style of the boundary (2D)
             'dspalpha': 0.2,     # Transparency of surface/boundary (3D)
             'dspzorder': 20,     # To make sure it is plotted ontop of the samples
@@ -140,22 +140,22 @@ class DSI():
             'step_change': 1,    # Step change of expanding AOR in percent
             'noplabel': 'NOP',   # Normal Operating Point label for legend
             'nopmarker': 'x',    # Nominal operating point marker style
-            'nopwidth':   3,     # Nominal operating point marker thickness
+            'nopwidth':   4,     # Nominal operating point marker thickness
             'nopcolor': 'black', # Nominal operating point marker color
-            'nopsize':  100,     # Nominal operating point marker size
+            'nopsize':  150,     # Nominal operating point marker size
             'nopzorder': 10,     # To make sure it is plotted ontop of the samples
 
             # ----- AOR Parameters ----- #
             'aorlabel': 'AOR',   # Uniform Proven Acceptable Range
             'aorstyle': '--',    # AOR boundary line style
             'aorcolor': 'black', # AOR boundary line color
-            'aorwidth': 3,       # AOR boundary line width
+            'aorwidth': 4,       # AOR boundary line width
             'aorzorder': 10,     # To make sure it is plotted ontop of the samples
             
             # ----- Hull Parameters ----- #
             'a': None, # Alpha value -> at large alpha,
                        # hull becomes convex. if None: use product of bounds range
-            'amul': 2, # Alpha multiplier value (wrt to a used)
+            'amul': 1, # Alpha multiplier value (wrt to a used)
         }
         self.opt = self.default_opt.copy()
         self.bw_template = {'alpha': 1, 'satcolor': 'gray', 'viocolor': 'black', \
