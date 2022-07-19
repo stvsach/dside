@@ -590,49 +590,81 @@ class DSI():
                 ax.azim += 0.5
                 plt.savefig(f'{sfolder}{sname}_frame_{leading_no + ii:04}.png',\
                     dpi = sdpi)
+    def inside2D(self, x):
+        """
+        Returns False if x is not in self.shp, True otherwise (2D)
+        x: list of [x, y], or [[x1, y1], [x2, y2], ...]
+        """
+        import numpy as np
+        from shapely.geometry import Point, Polygon
+        shp = self.shp
+        poly = Polygon(shp['edges_val'])
+        dim = len(np.array(x).shape)
+
+        if dim == 1:
+            x = [x]
+        vP = [Point(i[0], i[1]) for i in x]
+        out = [poly.contains(p) for p in vP]
+
+        if dim == 1:
+            out = out[0]
+        return out
     
     def inside3D(self, x):
         """
         Returns False if x is not in self.shp, True otherwise (3D)
+        x: list of [x, y, z], or [[x1, y1, z1], [x2, y2, z2], ...]
+        https://stackoverflow.com/a/57901916
+        https://stackoverflow.com/a/41851137/12056867
         """
         import numpy as np
         shp = self.shp
-        
+        dim = len(np.array(x).shape)
+
+        # Find which tetrahedron the point lies in
         node_coordinates = shp['P']
         node_ids = shp['tetras']
         p = np.array(x)
 
-        ori=node_coordinates[node_ids[:,0],:]
-        v1=node_coordinates[node_ids[:,1],:]-ori
-        v2=node_coordinates[node_ids[:,2],:]-ori
-        v3=node_coordinates[node_ids[:,3],:]-ori
-        n_tet=len(node_ids)
-        v1r=v1.T.reshape((3,1,n_tet))
-        v2r=v2.T.reshape((3,1,n_tet))
-        v3r=v3.T.reshape((3,1,n_tet))
-        mat = np.concatenate((v1r,v2r,v3r), axis=1)
-        inv_mat = np.linalg.inv(mat.T).T    # https://stackoverflow.com/a/41851137/12056867        
-        if p.size==3:
-            p=p.reshape((1,3))
-        n_p=p.shape[0]
-        orir=np.repeat(ori[:,:,np.newaxis], n_p, axis=2)
-        newp=np.einsum('imk,kmj->kij',inv_mat,p.T-orir)
-        val=np.all(newp>=0, axis=1) & np.all(newp <=1, axis=1) & (np.sum(newp, axis=1)<=1)
+        ori = node_coordinates[node_ids[:, 0],:]
+        v1 = node_coordinates[node_ids[:, 1],:] - ori
+        v2 = node_coordinates[node_ids[:, 2],:] - ori
+        v3 = node_coordinates[node_ids[:, 3],:] - ori
+        n_tet = len(node_ids)
+        v1r = v1.T.reshape((3, 1, n_tet))
+        v2r = v2.T.reshape((3, 1, n_tet))
+        v3r = v3.T.reshape((3, 1, n_tet))
+        mat = np.concatenate((v1r, v2r, v3r), axis=1)
+        inv_mat = np.linalg.inv(mat.T).T
+        if p.size == 3:
+            p = p.reshape((1,3))
+        n_p = p.shape[0]
+        orir = np.repeat(ori[:,:,np.newaxis], n_p, axis=2)
+        newp = np.einsum('imk,kmj->kij',inv_mat,p.T-orir)
+        val = np.all(newp>=0, axis=1) & np.all(newp <=1, axis=1) & (np.sum(newp, axis=1)<=1)
         id_tet, id_p = np.nonzero(val)
         res = -np.ones(n_p, dtype=id_tet.dtype) # Sentinel value
         res[id_p]=id_tet
-
-        V = shp['P'][shp['tetras'][res][0]]
-        p = x
-        # Find the transform matrix from orthogonal to tetrahedron system
-        v1 = V[1]-V[0] ; v2 = V[2]-V[0] ; v3 = V[3]-V[0]
-        mat = np.array((v1,v2,v3)).T
-        # mat is 3x3 here
-        M1 = np.linalg.inv(mat)
-        # apply the transform to P (v1 is the origin)
-        newp = M1.dot(p - V[0])
-        # perform test
-        return (np.all(newp>=0) and np.all(newp <=1) and np.sum(newp)<=1)
+        
+        if dim == 1:
+            x = [x]
+        # return res
+        out = []
+        for i, r in enumerate(res):
+            V = shp['P'][shp['tetras'][r]]
+            p = x[i]
+            # Find the transform matrix from orthogonal to tetrahedron system
+            v1 = V[1]-V[0] ; v2 = V[2]-V[0] ; v3 = V[3]-V[0]
+            mat = np.array((v1,v2,v3)).T
+            # mat is 3x3 here
+            M1 = np.linalg.inv(mat)
+            # apply the transform to P (v1 is the origin)
+            newp = M1.dot(p - V[0])
+            # perform test
+            out.append(np.all(newp>=0) and np.all(newp <=1) and np.sum(newp)<=1)
+        if dim == 1:
+            out = out[0]
+        return out
 
     def check_point(self, x):
         """
@@ -650,9 +682,7 @@ class DSI():
         df = self.df
         
         if dim == 2:
-            from shapely.geometry import Point, Polygon
-            poly = Polygon(shp['edges_val'])
-            inside = lambda x: poly.contains(Point(x[0], x[1]))
+            inside = self.inside2D
         else:
             inside = self.inside3D
 
