@@ -435,6 +435,7 @@ class DSI():
             shp = find_shp(points, alpha)
             shp['amul'] = amul
             sol_flag = f'No optimisation performed'
+            opt_log = 'N/A'
 
         elif opt['opt_amul'] == True: # Use bisection
             opt_log = []
