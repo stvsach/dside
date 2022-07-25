@@ -413,6 +413,7 @@ class DSI():
         vpoints = vio[vnames].to_numpy()
         self.opt.update({'vnames': vnames})
         self.opt.update(opt) 
+        print_flag = opt['printF']
         opt = self.opt
         a = opt['a']
         if a == None:
@@ -439,7 +440,6 @@ class DSI():
             opt_log = []
             tol = opt['tol']
             lb = opt['lb']
-            print_flag = opt['printF']
             ub = opt['ub']
             maxiter = opt['maxiter']
             maxvnum = opt['maxvp']*self.df.shape[0]
