@@ -413,7 +413,7 @@ class DSI():
         vpoints = vio[vnames].to_numpy()
         self.opt.update({'vnames': vnames})
         self.opt.update(opt) 
-        print_flag = opt['printF']
+        print_flag = self.opt['printF']
         opt = self.opt
         a = opt['a']
         if a == None:
@@ -476,6 +476,7 @@ class DSI():
         if print_flag:
             print(sol_flag)
 
+        self.vindsp = vio[inside(vpoints, shp)]
         space_size = shp['size']
         self.shp = shp
         self.space_size = space_size
