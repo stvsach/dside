@@ -443,7 +443,7 @@ class DSI():
             lb = opt['lb']
             ub = opt['ub']
             maxiter = opt['maxiter']
-            maxvnum = opt['maxvp']*self.df.shape[0]
+            maxvnum = opt['maxvp']*self.sat.shape[0]
             # Bisection algorithm
             for i in range(maxiter):
                 mp = lb + (ub - lb)/2
