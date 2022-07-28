@@ -196,6 +196,7 @@ class DSI():
         giving out the satisfied and violated DataFrame of samples
         constraints: {'output_name1': [lbd1, ubd1], 'output_name2': [lbd1, ubd2], ...}
         """
+        import pandas as pd
         data = self.df
         self.constraints = constraints
         sat = data.copy()
@@ -204,6 +205,17 @@ class DSI():
             sat = sat[sat[i] <= constraints[i][1]]
         exclude_these = data.index.isin(list(sat.index))
         vio = data[~exclude_these]
+
+        vSatFlag = pd.DataFrame([False for i in range(vio.shape[0])], columns = ['SatFlag'])
+        vSatFlag.index = vio.index
+        vio = pd.concat([vio, vSatFlag], axis = 1)
+        
+        sSatFlag = pd.DataFrame([False for i in range(sat.shape[0])], columns = ['SatFlag'])
+        sSatFlag.index = sat.index
+        sat = pd.concat([sat, sSatFlag], axis = 1)
+
+        sat['SatFlag'] = True
+        vio['SatFlag'] = False
         self.sat = sat
         self.vio = vio
         return sat, vio
@@ -443,7 +455,6 @@ class DSI():
             lb = opt['lb']
             ub = opt['ub']
             maxiter = opt['maxiter']
-            maxvnum = opt['maxvp']*self.sat.shape[0]
             # Bisection algorithm
             for i in range(maxiter):
                 mp = lb + (ub - lb)/2
@@ -455,6 +466,7 @@ class DSI():
                 r = inside(vpoints, shp)
                 flag = True in r
                 vnum = vio[r].shape[0]
+                maxvnum = opt['maxvp']*(self.sat.shape[0] + vnum)
                 if vnum <= maxvnum: # early break based on maxvnum
                     if print_flag:
                         print(i + 1, mp, flag)
@@ -477,6 +489,7 @@ class DSI():
             print(sol_flag)
 
         self.vindsp = vio[inside(vpoints, shp)]
+        self.indsp = pd.concat([sat, self.vindsp]).reset_index()
         space_size = shp['size']
         self.shp = shp
         self.space_size = space_size
