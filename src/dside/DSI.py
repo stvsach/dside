@@ -407,7 +407,7 @@ class DSI():
             plt.savefig(opt['save_name'], dpi = opt['save_dpi'])
         return self.report
     
-    def find_DSp(self, vnames, opt = {}):
+    def find_DSp(self, vnames, extra_points = [], opt = {}):
         """
         Create a hull using alphashape
         Depending on alpha (opt['a']) value it can be either convex/concave
@@ -421,6 +421,9 @@ class DSI():
         
         sat = self.sat
         points = sat[vnames].to_numpy(dtype='float')
+        if len(extra_points) != 0:
+            points = np.vstack([points, extra_points])
+            self.extra_points = extra_points
         vio = self.vio
         vpoints = vio[vnames].to_numpy(dtype='float')
         self.opt.update({'vnames': vnames})
