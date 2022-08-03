@@ -420,9 +420,9 @@ class DSI():
         import pandas as pd
         
         sat = self.sat
-        points = sat[vnames].to_numpy()
+        points = sat[vnames].to_numpy(dtype='float')
         vio = self.vio
-        vpoints = vio[vnames].to_numpy()
+        vpoints = vio[vnames].to_numpy(dtype='float')
         self.opt.update({'vnames': vnames})
         self.opt.update(opt) 
         print_flag = self.opt['printF']
