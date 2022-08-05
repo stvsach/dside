@@ -65,6 +65,8 @@ class DSI():
         }
         self.all_x = {}
         self.space_size = None
+        self.tetra = None
+        self.r = None
         
         # Set default color map for heat map plot
         inferno_modified = plt.cm.get_cmap('inferno', 256)
@@ -129,6 +131,7 @@ class DSI():
                                      #          ('sat', 'vio', 'df', or 'best')
             
             # ----- Design Space Parameters ----- #
+            'extra_points': [],  # Extra data points for design space identification
             'dsplabel': 'DSp',   # Label of surface/boundary
             'dspcolor': 'black', # Color of the surface/boundary (both)
             'dspwidth': 4,       # Thickness of the boundary (2D)
@@ -351,7 +354,7 @@ class DSI():
         # ----- Design space surface/boundary ----- #
         if opt['hidedsp'] == False:
             if self.space_size == None:
-                self.shp = self.find_DSp(vnames, opt)
+                self.shp = self.find_DSp(vnames, opt = opt)
             shp = self.shp
             if dim == 2:
                 plt.plot(*zip(*shp['edges_val']),\
@@ -407,7 +410,7 @@ class DSI():
             plt.savefig(opt['save_name'], dpi = opt['save_dpi'])
         return self.report
     
-    def find_DSp(self, vnames, extra_points = [], opt = {}):
+    def find_DSp(self, vnames, opt = {}):
         """
         Create a hull using alphashape
         Depending on alpha (opt['a']) value it can be either convex/concave
@@ -420,6 +423,7 @@ class DSI():
         import pandas as pd
         
         sat = self.sat
+        extra_points = opt['extra_points']
         points = sat[vnames].to_numpy(dtype='float')
         if len(extra_points) != 0:
             points = np.vstack([points, extra_points])
@@ -589,25 +593,28 @@ class DSI():
         from scipy.spatial import Delaunay
         import numpy as np
         from collections import defaultdict
+        tetra = self.tetra
+        r = self.r
+        if tetra == None:
+            tetra = Delaunay(P)
+            # Find radius of the circumsphere.
+            # By definition, radius of the sphere fitting inside the tetrahedral needs 
+            # to be smaller than alpha value
+            # http://mathworld.wolfram.com/Circumsphere.html
 
-        tetra = Delaunay(P)
-        # Find radius of the circumsphere.
-        # By definition, radius of the sphere fitting inside the tetrahedral needs 
-        # to be smaller than alpha value
-        # http://mathworld.wolfram.com/Circumsphere.html
+            tetrapos = np.take(P, tetra.vertices,axis=0)
+            normsq = np.sum(tetrapos**2, axis=2)[:, :, None]
+            ones = np.ones((tetrapos.shape[0], tetrapos.shape[1], 1))
 
-        tetrapos = np.take(P, tetra.vertices,axis=0)
-        normsq = np.sum(tetrapos**2, axis=2)[:, :, None]
-        ones = np.ones((tetrapos.shape[0], tetrapos.shape[1], 1))
-
-        a  =  np.linalg.det(np.concatenate((tetrapos, ones), axis=2))
-        a[a == 0] = 1e-30
-        Dx =  np.linalg.det(np.concatenate((normsq, tetrapos[:,:,[1,2]], ones), axis = 2))
-        Dy = -np.linalg.det(np.concatenate((normsq, tetrapos[:,:,[0,2]], ones), axis = 2))
-        Dz =  np.linalg.det(np.concatenate((normsq, tetrapos[:,:,[0,1]], ones), axis = 2))
-        c  =  np.linalg.det(np.concatenate((normsq, tetrapos), axis = 2))
-        r  =  np.sqrt(Dx**2 + Dy**2 + Dz**2 - 4*a*c)/(2*np.abs(a))
-
+            a  =  np.linalg.det(np.concatenate((tetrapos, ones), axis=2))
+            a[a == 0] = 1e-30
+            Dx =  np.linalg.det(np.concatenate((normsq, tetrapos[:,:,[1,2]], ones), axis = 2))
+            Dy = -np.linalg.det(np.concatenate((normsq, tetrapos[:,:,[0,2]], ones), axis = 2))
+            Dz =  np.linalg.det(np.concatenate((normsq, tetrapos[:,:,[0,1]], ones), axis = 2))
+            c  =  np.linalg.det(np.concatenate((normsq, tetrapos), axis = 2))
+            r  =  np.sqrt(Dx**2 + Dy**2 + Dz**2 - 4*a*c)/(2*np.abs(a))
+            self.tetra = tetra
+            self.r = r
         # Find tetrahedrals
         tetras = tetra.vertices[r<alpha, :]
 
