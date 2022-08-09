@@ -423,6 +423,7 @@ class DSI():
         import pandas as pd
         
         sat = self.sat
+        self.vnames = vnames
         extra_points = opt['extra_points']
         points = sat[vnames].to_numpy(dtype='float')
         if len(extra_points) != 0:
