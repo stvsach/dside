@@ -431,7 +431,6 @@ class DSI():
             vnames = self.vnames
         else:
             self.vnames = vnames
-        extra_points = opt['extra_points']
         points = sat[vnames].to_numpy(dtype='float')
         if len(extra_points) != 0:
             points = np.vstack([points, extra_points])
@@ -442,6 +441,7 @@ class DSI():
         self.opt.update(opt) 
         print_flag = self.opt['printF']
         opt = self.opt
+        extra_points = opt['extra_points']
         a = opt['a']
         if a == None:
             fdf = pd.concat([sat, vio], axis = 0)[vnames]
