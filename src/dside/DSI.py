@@ -166,6 +166,7 @@ class DSI():
             'amul': 1,        # Alpha multiplier value (wrt to a used)
             'opt_amul': True, # If True, use bisection to find largest amul with no vio
                               # in DSp
+            'extra_points': [], # Extra points to be used to design space identification
             'maxiter': 50,    # Maximum bisection iterations
             'tol': 0.001,     # Bisection tolerance (on the MV which is amul)
             'lb': 0.001,      # Lower bound of initial bisection run
