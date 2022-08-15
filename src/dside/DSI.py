@@ -248,7 +248,7 @@ class DSI():
                 print(f'{i:10}: {self.opt[i]}')
         return self.opt
     
-    def plot(self, vnames, opt = {}):
+    def plot(self, vnames = None, opt = {}):
         """
         Plot either 2D or 3D design space based on satisfied and violated points.
         vnames: ['varname1', 'varname2', 'varname3']
@@ -259,7 +259,10 @@ class DSI():
         import matplotlib.pyplot as plt
         import matplotlib
         # ---------------------------- Internal definitions ---------------------------- #
-        self.vnames = vnames
+        if vnames == None:
+            vnames = self.vnames
+        else:
+            self.vnames = vnames
         axes_label = ['xlabel', 'ylabel', 'zlabel']
         for i, l in enumerate(vnames):
             self.opt[axes_label[i]] = l
@@ -411,7 +414,7 @@ class DSI():
             plt.savefig(opt['save_name'], dpi = opt['save_dpi'])
         return self.report
     
-    def find_DSp(self, vnames, opt = {}):
+    def find_DSp(self, vnames = None, opt = {}):
         """
         Create a hull using alphashape
         Depending on alpha (opt['a']) value it can be either convex/concave
@@ -424,7 +427,10 @@ class DSI():
         import pandas as pd
         
         sat = self.sat
-        self.vnames = vnames
+        if vnames == None:
+            vnames = self.vnames
+        else:
+            self.vnames = vnames
         extra_points = opt['extra_points']
         points = sat[vnames].to_numpy(dtype='float')
         if len(extra_points) != 0:
