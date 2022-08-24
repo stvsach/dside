@@ -462,10 +462,10 @@ class DSI():
             shp = find_shp(points, alpha)
             shp['amul'] = amul
             sol_flag = f'No optimisation performed'
-            opt_log = 'N/A'
+            # opt_log = 'N/A'
 
         elif opt['opt_amul'] == True: # Use bisection
-            opt_log = []
+            # opt_log = []
             tol = opt['tol']
             lb = opt['lb']
             ub = opt['ub']
@@ -476,7 +476,7 @@ class DSI():
                 shp = find_shp(points, a*mp)
                 shp['amul'] = mp
                 shp['iter'] = i + 1
-                opt_log.append(shp)
+                # opt_log.append(shp)
                 self.shp = shp
                 r = inside(vpoints, shp)
                 flag = True in r
@@ -503,6 +503,12 @@ class DSI():
         if print_flag:
             print(sol_flag)
 
+        # Calculate volume
+        if dim == 3:
+            volume = 0
+            for v in shp['P'][shp['tetras']]:
+                volume += np.abs(np.dot(v[0] - v[3], np.cross(v[1] - v[3], v[2] - v[3])))/6
+            shp['size'] = volume
         self.vindsp = vio[inside(vpoints, shp)]
         self.indsp = pd.concat([sat, self.vindsp]).reset_index()
         space_size = shp['size']
@@ -512,7 +518,7 @@ class DSI():
         self.P = shp['P']
         self.report['space_size'] = space_size
         self.report['sol_flag'] = sol_flag
-        self.report['opt_log'] = opt_log
+        # self.report['opt_log'] = opt_log
         return shp
     
     def alphashape_2D(self, P, alpha):
@@ -600,7 +606,7 @@ class DSI():
         """
         from scipy.spatial import Delaunay
         import numpy as np
-        from collections import defaultdict
+        import pandas as pd
         tetra = self.tetra
         r = self.r
         if tetra == None:
@@ -632,10 +638,7 @@ class DSI():
         triangles = np.sort(triangles, axis = 1)
 
         # Remove triangles that occurs twice, because they are within shapes
-        trianglesDict = defaultdict(int)
-        for tri in triangles:
-            trianglesDict[tuple(tri)] += 1
-        triangles = np.array([tri for tri in trianglesDict if trianglesDict[tri] == 1])
+        triangles = pd.DataFrame(triangles).drop_duplicates(keep = False).to_numpy()
 
         #edges
         edgeComb = np.array([(0, 1), (0, 2), (1, 2)])
@@ -654,10 +657,10 @@ class DSI():
         shp['edges_val'] = None
         shp['alpha'] = alpha
 
-        volume = 0
-        for v in P[tetras]:
-            volume += np.abs(np.dot(v[0] - v[3], np.cross(v[1] - v[3], v[2] - v[3])))/6
-        shp['size'] = volume
+        # volume = 0
+        # for v in P[tetras]:
+        #     volume += np.abs(np.dot(v[0] - v[3], np.cross(v[1] - v[3], v[2] - v[3])))/6
+        shp['size'] = 420e-10
         return shp
 
     def collect_frames(self, anielev = 10, sfolder = 'animation', sname = 'plot',\
