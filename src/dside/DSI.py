@@ -726,35 +726,43 @@ class DSI():
 
         # Find which tetrahedron the point lies in
         node_coordinates = shp['P']
-        node_ids = shp['tetras']
+        no_tetras = shp['tetras'].shape[0]
+        no_splits = 1000
+        if no_tetras < no_splits:
+            no_splits = no_tetras
+        node_ids_list = np.array_split(shp['tetras'], no_splits)
         p = np.array(x)
 
-        ori = node_coordinates[node_ids[:, 0],:]
-        v1 = node_coordinates[node_ids[:, 1],:] - ori
-        v2 = node_coordinates[node_ids[:, 2],:] - ori
-        v3 = node_coordinates[node_ids[:, 3],:] - ori
-        n_tet = len(node_ids)
-        v1r = v1.T.reshape((3, 1, n_tet))
-        v2r = v2.T.reshape((3, 1, n_tet))
-        v3r = v3.T.reshape((3, 1, n_tet))
-        mat = np.concatenate((v1r, v2r, v3r), axis=1)
-        inv_mat = np.linalg.inv(mat.T).T
-        if p.size == 3:
-            p = p.reshape((1,3))
-        n_p = p.shape[0]
-        orir = np.repeat(ori[:,:,np.newaxis], n_p, axis=2)
-        newp = np.einsum('imk,kmj->kij',inv_mat,p.T-orir)
-        val = np.all(newp>=0, axis=1) & np.all(newp <=1, axis=1) & (np.sum(newp, axis=1)<=1)
-        id_tet, id_p = np.nonzero(val)
-        res = -np.ones(n_p, dtype=id_tet.dtype) # Sentinel value
-        res[id_p]=id_tet
-        
+        res_list = []
+        for node_ids in node_ids_list:
+            ori = node_coordinates[node_ids[:, 0],:]
+            v1 = node_coordinates[node_ids[:, 1],:] - ori
+            v2 = node_coordinates[node_ids[:, 2],:] - ori
+            v3 = node_coordinates[node_ids[:, 3],:] - ori
+            n_tet = len(node_ids)
+            v1r = v1.T.reshape((3, 1, n_tet))
+            v2r = v2.T.reshape((3, 1, n_tet))
+            v3r = v3.T.reshape((3, 1, n_tet))
+            mat = np.concatenate((v1r, v2r, v3r), axis=1)
+            inv_mat = np.linalg.inv(mat.T).T
+            if p.size == 3:
+                p = p.reshape((1,3))
+            n_p = p.shape[0]
+            orir = np.repeat(ori[:,:,np.newaxis], n_p, axis=2)
+            newp = np.einsum('imk,kmj->kij',inv_mat,p.T-orir)
+            val = np.all(newp>=0, axis=1) & np.all(newp <=1, axis=1) & (np.sum(newp, axis=1)<=1)
+            id_tet, id_p = np.nonzero(val)
+            res = -np.ones(n_p, dtype=id_tet.dtype) # Sentinel value
+            res[id_p]=id_tet
+            if res[0] != -1:
+                res_list.append(node_ids[res[0]])
+
         if dim == 1:
             x = [x]
         # return res
         out = []
-        for i, r in enumerate(res):
-            V = shp['P'][shp['tetras'][r]]
+        for i, r in enumerate(res_list):
+            V = shp['P'][r]
             p = x[i]
             # Find the transform matrix from orthogonal to tetrahedron system
             v1 = V[1]-V[0] ; v2 = V[2]-V[0] ; v3 = V[3]-V[0]
