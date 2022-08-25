@@ -161,7 +161,7 @@ class DSI():
             'AORprintF': False,  # Print bisection output
             
             # ----- Hull Parameters ----- #
-            'no_splits': 100, # Splits for the inside3D function to reduce memory req
+            'no_splits': 10, # Splits for the inside3D function to reduce memory req
             'a': None,        # Alpha value -> at large alpha,
                               # hull becomes convex. if None: use product of bounds range
             'amul': 1,        # Alpha multiplier value (wrt to a used)
@@ -725,17 +725,23 @@ class DSI():
             shp = self.shp
         dim = len(np.array(x).shape)
 
+        no_x = np.array(x).shape[0]
+        if dim == 2:
+            no_splits = self.opt['no_splits']
+            if no_x < no_splits:
+                no_splits = int(no_x/2)
+            x_list = np.array_split(x, no_splits)
+        else:
+            x_list = [x]
+
         # Find which tetrahedron the point lies in
         node_coordinates = shp['P']
-        no_tetras = shp['tetras'].shape[0]
-        no_splits = self.opt['no_splits']
-        if no_tetras < no_splits:
-            no_splits = no_tetras
-        node_ids_list = np.array_split(shp['tetras'], no_splits)
-        p = np.array(x)
+        node_ids = shp['tetras']
 
         res_list = []
-        for node_ids in node_ids_list:
+        for x_s in x_list:
+            p = np.array(x_s)
+
             ori = node_coordinates[node_ids[:, 0],:]
             v1 = node_coordinates[node_ids[:, 1],:] - ori
             v2 = node_coordinates[node_ids[:, 2],:] - ori
@@ -754,18 +760,16 @@ class DSI():
             val = np.all(newp>=0, axis=1) & np.all(newp <=1, axis=1) & (np.sum(newp, axis=1)<=1)
             id_tet, id_p = np.nonzero(val)
             res = -np.ones(n_p, dtype=id_tet.dtype) # Sentinel value
-            res[id_p]=id_tet
-            if res[0] != -1:
-                res_list.append(node_ids[res[0]])
-        if len(res_list) == 0:
-            res_list.append(node_ids[-1])
+            res[id_p] = id_tet
+            res_list.append(res)
+        res = np.concatenate(res_list)
 
         if dim == 1:
             x = [x]
         # return res
         out = []
-        for i, r in enumerate(res_list):
-            V = shp['P'][r]
+        for i, r in enumerate(res):
+            V = shp['P'][shp['tetras'][r]]
             p = x[i]
             # Find the transform matrix from orthogonal to tetrahedron system
             v1 = V[1]-V[0] ; v2 = V[2]-V[0] ; v3 = V[3]-V[0]
