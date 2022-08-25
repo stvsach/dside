@@ -161,6 +161,7 @@ class DSI():
             'AORprintF': False,  # Print bisection output
             
             # ----- Hull Parameters ----- #
+            'no_splits': 100, # Splits for the inside3D function to reduce memory req
             'a': None,        # Alpha value -> at large alpha,
                               # hull becomes convex. if None: use product of bounds range
             'amul': 1,        # Alpha multiplier value (wrt to a used)
@@ -727,7 +728,7 @@ class DSI():
         # Find which tetrahedron the point lies in
         node_coordinates = shp['P']
         no_tetras = shp['tetras'].shape[0]
-        no_splits = 1000
+        no_splits = self.opt['no_splits']
         if no_tetras < no_splits:
             no_splits = no_tetras
         node_ids_list = np.array_split(shp['tetras'], no_splits)
@@ -756,6 +757,8 @@ class DSI():
             res[id_p]=id_tet
             if res[0] != -1:
                 res_list.append(node_ids[res[0]])
+        if len(res_list) == 0:
+            res_list.append(node_ids[-1])
 
         if dim == 1:
             x = [x]
