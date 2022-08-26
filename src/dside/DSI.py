@@ -956,8 +956,8 @@ class DSI():
         
         return fs_R
     
-    def send_output(self, output_filename = 'DSI_output', appendix = True,\
-            rp_pkl = True):
+    def send_output(self, output_filename = 'DSI_output', appendix = False,\
+            rp_pkl = False):
         """
         Send report of the DSI study as a txt file and .pkl file.
         """
