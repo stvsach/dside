@@ -131,7 +131,6 @@ class DSI():
                                      #          ('sat', 'vio', 'df', or 'best')
             
             # ----- Design Space Parameters ----- #
-            'extra_points': [],  # Extra data points for design space identification
             'dsplabel': 'DSp',   # Label of surface/boundary
             'dspcolor': 'black', # Color of the surface/boundary (both)
             'dspwidth': 4,       # Thickness of the boundary (2D)
