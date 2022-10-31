@@ -493,7 +493,7 @@ class DSI():
                     if ub - lb <= tol:
                         if print_flag:
                             print(i + 1, mp, flag)
-                        sol_flag = f'[{i + 1}] Optimal amul found: {mp:6f}   alpha: {a*mp:6f}   Tol: {tol:1.3e}   Gap: {ub - lb:1.3e}'
+                        sol_flag = f'[{i + 1}] Optimal amul found: {mp:6f}   alpha: {a*mp:6f}   Tol: {tol:1.3e}   Gap: {ub - lb:1.3e}\nvnum: {vnum}   maxvnum: {maxvnum}'
                         break
                 if print_flag:
                     print(i + 1, mp, flag)
