@@ -482,19 +482,18 @@ class DSI():
                 flag = True in r
                 vnum = vio[r].shape[0]
                 maxvnum = opt['maxvp']*(self.sat.shape[0] + vnum)
-                if vnum <= maxvnum: # early break based on maxvnum
-                    if print_flag:
-                        print(i + 1, mp, flag)
-                    sol_flag = f'vnum is LE maxvnum ({opt["maxvp"]*100:.1f}%): {vnum} <= {maxvnum}'
-                    break
-                elif flag == True:
+                if vnum <= maxvnum: # tolerance based
+                    flag = False
+                else:
+                    flag = True
+                if flag == True:
                     ub = mp
                 elif flag == False:
                     lb = mp
                     if ub - lb <= tol:
                         if print_flag:
                             print(i + 1, mp, flag)
-                        sol_flag = f'[{i + 1}] Optimal amul found: {mp:6f}   Gap: {ub - lb:6f}'
+                        sol_flag = f'[{i + 1}] Optimal amul found: {mp:6f}   alpha: {a*mp:6f}   Tol: {tol:1.3e}   Gap: {ub - lb:1.3e}'
                         break
                 if print_flag:
                     print(i + 1, mp, flag)
