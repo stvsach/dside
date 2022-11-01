@@ -105,6 +105,7 @@ class DSI():
             # Color bar and map
             'cbarloc': 'right',   # Colobar location
             'cbaror': 'vertical', # Colorbar orientation
+            'cbarpad': 0,         # Colorbar padding
             'mycmap': 'viridis',  # Use your own cmap (input name of cmap as str)
             # Satisfied samples
             'satlabel': 'Sat',     # Satisfied samples label
@@ -339,7 +340,7 @@ class DSI():
                         zorder = opt['satzorder'])
                 else:
                     fig.colorbar(sm, label = opt['hmvlabel'],\
-                        location = opt['cbarloc'], orientation = opt['cbaror'])
+                        location = opt['cbarloc'], orientation = opt['cbaror'], pad = opt['cbarpad'])
                     ax.scatter(*zip(*sat[vnames].to_numpy()), marker = opt['satmarker'],\
                         label = opt['satlabel'], color = cmap(norm(sat[opt['hmv']])),\
                         alpha = opt['alpha'], zorder = opt['satzorder'])                
