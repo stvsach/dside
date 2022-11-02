@@ -23,7 +23,7 @@ shp = ds.find_DSp(vnames)
 r = ds.plot(vnames)
 # 5. Plot the nominal point and AOR based on point x (list/numpy array)
 r = ds.find_AOR(x)
-# 6. Save the results in detailed output.txt file and output.pkl file
+# 6. Save the results in detailed output.txt file
 ds.send_output('output')
 ```
 
