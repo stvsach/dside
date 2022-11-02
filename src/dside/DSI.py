@@ -426,7 +426,9 @@ class DSI():
         """
         import numpy as np
         import pandas as pd
-        
+        from time import time
+        start_t = time()
+
         sat = self.sat
         if vnames == None:
             vnames = self.vnames
@@ -519,6 +521,10 @@ class DSI():
         self.report['space_size'] = space_size
         self.report['sol_flag'] = sol_flag
         # self.report['opt_log'] = opt_log
+        
+        end_t = time()
+        comp_t = end_t - start_t
+        self.report['time'] = comp_t
         return shp
     
     def alphashape_2D(self, P, alpha):
@@ -788,6 +794,8 @@ class DSI():
         Checks whether point x lies within the hull or not.
         """
         import numpy as np
+        from time import time
+        start_t = time()
         vn = self.vnames
         opt = self.opt
         sat = self.sat
@@ -903,8 +911,12 @@ class DSI():
                     hmv_fs_R['fs_all_samples'] = fs_df
             fs_R = {'x': x, 'FR': FR, 'rmax': rmax, 'rmin': rmin, 'space_size': fs_size, 
                 'plusmin': plusmin, 'nosam': fs_df.shape[0], 'hmv': hmv_fs_R, 
-                'hmv_sam_flag': no_samples_flag, 'not_in_region_flag': not_in_region_flag, 'AORopt_log': AORopt_log}
-
+                'hmv_sam_flag': no_samples_flag, 'not_in_region_flag': not_in_region_flag, 'AORopt_log': AORopt_log, 'fs_df': fs_df}
+        
+        end_t = time()
+        comp_t = end_t - start_t
+        fs_R.update({'time': comp_t})
+        self.inAOR = fs_df
         self.all_x.update({str(x): fs_R})
         return fs_R
         
@@ -926,6 +938,7 @@ class DSI():
             fs_R = self.all_x[str(x)]
             if fs_R['not_in_region_flag']:
                 print('x is not inside DSp.')
+        self.inAOR = fs_R['fs_df']
         FR = fs_R['FR']
         not_in_region_flag = fs_R['not_in_region_flag']
         
