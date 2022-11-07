@@ -107,6 +107,11 @@ class DSI():
             'cbaror': 'vertical', # Colorbar orientation
             'cbarpad': 0.12,      # Colorbar padding
             'mycmap': 'viridis',  # Use your own cmap (input name of cmap as str)
+            'cmapmax': None,       # max colorbar scale
+            'cmapmin': None,       # min colorbar scale
+            'cmapext': 'neither',  # if extended cbar is desired
+            'cmapextmax': 'red',   # color of the "over max values"
+            'cmapextmin': 'green', # color of the "under min values"
             # Satisfied samples
             'satlabel': 'Sat',     # Satisfied samples label
             'satcolor': '#FF9000', # Satisfied samples color
@@ -289,7 +294,13 @@ class DSI():
             else:
                 hmvdf = pd.concat([sat, vio], axis = 0)
             hmvdf = hmvdf[opt['hmv']]
-            norm = matplotlib.colors.Normalize(vmin = hmvdf.min(), vmax = hmvdf.max())
+            cmapvmin = hmvdf.min()
+            cmapvmax = hmvdf.max()
+            if opt['cmapmax'] != None:
+                cmapvmax = opt['cmapmax']
+            if opt['cmapmin'] != None:
+                cmapvmin = opt['cmapmin']
+            norm = matplotlib.colors.Normalize(vmin = cmapvmin, vmax = cmapvmax)
             if opt['mycmap'] != None:
                 if type(opt['mycmap']) == str:
                     cmap = plt.cm.get_cmap(opt['mycmap'], 256)
@@ -298,6 +309,13 @@ class DSI():
             else:
                 cmap = self.cmap_opt[opt['cmap']]
             sm = plt.cm.ScalarMappable(cmap = cmap, norm = norm)
+            if opt['cmapext'] == 'both':
+                sm.cmap.set_over(opt['cmapextmax'])
+                sm.cmap.set_under(opt['cmapextmin'])
+            elif opt['cmapext'] == 'max':
+                sm.cmap.set_over(opt['cmapextmax'])
+            elif opt['cmapext'] == 'min':
+                sm.cmap.set_under(opt['cmapextmin'])
             
             # ----- Calculating heat map variable values in design space ----- #
             hmv_R['mean']  = sat[opt['hmv']].mean()
@@ -335,15 +353,18 @@ class DSI():
             if nosat_flag == False:
                 if (opt['hmv'] == 'None') or (opt['hidehmv'] == True):
                     ax.scatter(*zip(*sat[vnames].to_numpy()), marker = opt['satmarker'],\
-                        facecolors = opt['satfill'], label = opt['satlabel'],\
-                        color = opt['satcolor'], alpha = opt['alpha'],\
+                        facecolors = opt['satfill'], label = opt['satlabel'], color = opt['satcolor'], alpha = opt['alpha'], 
                         zorder = opt['satzorder'])
                 else:
-                    fig.colorbar(sm, label = opt['hmvlabel'],\
-                        location = opt['cbarloc'], orientation = opt['cbaror'], pad = opt['cbarpad'])
-                    ax.scatter(*zip(*sat[vnames].to_numpy()), marker = opt['satmarker'],\
-                        label = opt['satlabel'], color = cmap(norm(sat[opt['hmv']])),\
-                        alpha = opt['alpha'], zorder = opt['satzorder'])                
+                    self.cbar = fig.colorbar(sm, label = opt['hmvlabel'], location = opt['cbarloc'], orientation = opt['cbaror'], pad = opt['cbarpad'], extend = opt['cmapext'])
+                    if opt['cmapext'] == 'both':
+                        self.cbar.cmap.set_over(opt['cmapextmax'])
+                        self.cbar.cmap.set_under(opt['cmapextmin'])
+                    elif opt['cmapext'] == 'max':
+                        self.cbar.cmap.set_over(opt['cmapextmax'])
+                    elif opt['cmapext'] == 'min':
+                        self.cbar.cmap.set_under(opt['cmapextmin'])
+                    ax.scatter(*zip(*sat[vnames].to_numpy()), marker = opt['satmarker'], label = opt['satlabel'], color = cmap(norm(sat[opt['hmv']])), alpha = opt['alpha'], zorder = opt['satzorder'])                
         if opt['hidevio'] == False:
             if novio_flag == False:
                 if (opt['hmv'] == 'None') or (opt['hidehmv'] == True):
