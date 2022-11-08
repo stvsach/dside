@@ -848,7 +848,7 @@ class DSI():
             fs_df = None
             fs_R = {'x': x, 'FR': 'N/A', 'rmax': 'N/A', 'rmin': 'N/A',
             'space_size': 'N/A', 'plusmin': 'N/A', 'nosam': 'N/A', 
-            'hmv': 'N/A', 'hmv_sam_flag': 'N/A', 'not_in_region_flag': not_in_region_flag}
+            'hmv': 'N/A', 'hmv_sam_flag': 'N/A', 'not_in_region_flag': not_in_region_flag, 'fs_df': fs_df}
         else: # Bisection
             for i in range(maxiter):
                 pc = pclb + (pcub - pclb)/2
