@@ -845,6 +845,7 @@ class DSI():
         if inside(x) == False:
             print('x is not inside DSp.')
             not_in_region_flag = True
+            fs_df = None
             fs_R = {'x': x, 'FR': 'N/A', 'rmax': 'N/A', 'rmin': 'N/A',
             'space_size': 'N/A', 'plusmin': 'N/A', 'nosam': 'N/A', 
             'hmv': 'N/A', 'hmv_sam_flag': 'N/A', 'not_in_region_flag': not_in_region_flag}
