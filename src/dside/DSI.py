@@ -106,6 +106,8 @@ class DSI():
             'cbarloc': 'right',   # Colobar location
             'cbaror': 'vertical', # Colorbar orientation
             'cbarpad': 0.12,      # Colorbar padding
+            'cbarshrink': 1.0,    # size of the colorbar
+            'cbarfraction': 0.15, # fraction of original axes to use for colorbar
             'mycmap': 'viridis',  # Use your own cmap (input name of cmap as str)
             'cmapmax': None,       # max colorbar scale
             'cmapmin': None,       # min colorbar scale
@@ -356,7 +358,7 @@ class DSI():
                         facecolors = opt['satfill'], label = opt['satlabel'], color = opt['satcolor'], alpha = opt['alpha'], 
                         zorder = opt['satzorder'])
                 else:
-                    self.cbar = fig.colorbar(sm, label = opt['hmvlabel'], location = opt['cbarloc'], orientation = opt['cbaror'], pad = opt['cbarpad'], extend = opt['cmapext'])
+                    self.cbar = fig.colorbar(sm, label = opt['hmvlabel'], location = opt['cbarloc'], orientation = opt['cbaror'], pad = opt['cbarpad'], extend = opt['cmapext'], shrink = opt['cbarshrink'], fraction = opt['cbarfraction'])
                     if opt['cmapext'] == 'both':
                         self.cbar.cmap.set_over(opt['cmapextmax'])
                         self.cbar.cmap.set_under(opt['cmapextmin'])
