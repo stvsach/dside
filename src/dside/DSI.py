@@ -118,12 +118,14 @@ class DSI():
             'satlabel': 'Sat',     # Satisfied samples label
             'satcolor': '#FF9000', # Satisfied samples color
             'satmarker': '.',      # Marker of satisfied points
+            'satmarkersize': 20,   # Marker size of violated points
             'satfill': '#FF9000',  # Marker fill color of satisfied points
             'satzorder': 5,        # Decides which level to be plotted on
             # Violated samples
             'violabel': 'Vio',     # Violated samples label
             'viocolor': '#005DC1', # Violated samples color
             'viomarker': '.',      # Marker of violated points
+            'viomarkersize': 20,   # Marker size of violated points
             'viofill': '#005DC1',  # Marker fill color of violated points
             'viozorder': 5,        # Decides which level to be plotted on
             # Legend
@@ -354,7 +356,7 @@ class DSI():
         if opt['hidesat'] == False:
             if nosat_flag == False:
                 if (opt['hmv'] == 'None') or (opt['hidehmv'] == True):
-                    ax.scatter(*zip(*sat[vnames].to_numpy()), marker = opt['satmarker'],\
+                    ax.scatter(*zip(*sat[vnames].to_numpy()), s = opt['satmarkersize'], marker = opt['satmarker'],\
                         facecolors = opt['satfill'], label = opt['satlabel'], color = opt['satcolor'], alpha = opt['alpha'], 
                         zorder = opt['satzorder'])
                 else:
@@ -366,16 +368,16 @@ class DSI():
                         self.cbar.cmap.set_over(opt['cmapextmax'])
                     elif opt['cmapext'] == 'min':
                         self.cbar.cmap.set_under(opt['cmapextmin'])
-                    ax.scatter(*zip(*sat[vnames].to_numpy()), marker = opt['satmarker'], label = opt['satlabel'], color = cmap(norm(sat[opt['hmv']])), alpha = opt['alpha'], zorder = opt['satzorder'])                
+                    ax.scatter(*zip(*sat[vnames].to_numpy()), s = opt['satmarkersize'], marker = opt['satmarker'], label = opt['satlabel'], color = cmap(norm(sat[opt['hmv']])), alpha = opt['alpha'], zorder = opt['satzorder'])                
         if opt['hidevio'] == False:
             if novio_flag == False:
                 if (opt['hmv'] == 'None') or (opt['hidehmv'] == True):
-                    ax.scatter(*zip(*vio[vnames].to_numpy()), marker = opt['viomarker'],\
+                    ax.scatter(*zip(*vio[vnames].to_numpy()), s = opt['viomarkersize'], marker = opt['viomarker'],\
                         facecolors = opt['viofill'], label = opt['violabel'],\
                         color = opt['viocolor'], alpha = opt['alpha'],\
                         zorder = opt['viozorder'])
                 else:
-                    ax.scatter(*zip(*vio[vnames].to_numpy()), marker = opt['viomarker'],\
+                    ax.scatter(*zip(*vio[vnames].to_numpy()), s = opt['viomarkersize'], marker = opt['viomarker'],\
                         label = opt['violabel'], color = cmap(norm(vio[opt['hmv']])),\
                         alpha = opt['alpha'], zorder = opt['viozorder'])
         
