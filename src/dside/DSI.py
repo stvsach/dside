@@ -22,6 +22,23 @@ def get_at_time(df, t, time_label = 'Time'):
                 dft[i] = sliced.iloc[0]
     return pd.DataFrame(dft).T
 
+def update_ds(ds):
+    """
+    Updates old ds options with the new ones
+    """
+    ds1 = DSI(ds.df)
+    l1 = list(ds.default_opt.keys())
+    l2 = list(ds1.default_opt.keys())
+    l3 = l1 + l2
+    up = []
+    for i in l2:
+        if l3.count(i) == 1:
+            up.append(i)
+    ds.opt.update()
+    for u in up:
+        ds.opt.update({u: ds1.default_opt[u]})
+    return ds
+
 def qp(df, constraints, vnames, x = None, opt = None):
     """
     Quick plotting function. Uses the DSI class.
