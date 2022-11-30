@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-__version__ = '0.2.0.5'
+__version__ = '0.2.0.6'
 short_description = 'Design space identification tool for plotting and analysing design'+\
     ' spaces (2D and 3D).'
 with open("README.md", "r") as fh:
