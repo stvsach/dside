@@ -482,8 +482,7 @@ class DSI():
             self.extra_points = extra_points
         a = opt['a']
         if a == None:
-            fdf = pd.concat([sat, vio], axis = 0)[vnames]
-            a = np.product(fdf[vnames].max() - fdf[vnames].min())
+            a = np.product(self.df[vnames].max())
 
         dim = len(vnames)
         if dim == 2:
@@ -508,6 +507,13 @@ class DSI():
             lb = opt['lb']
             ub = opt['ub']
             maxiter = opt['maxiter']
+            if print_flag:
+                print('Starting bisection search for alpha radius')
+                print(f'    tol: {tol:3.3e}  maxiter: {maxiter}')
+                print(f'    lb:  {lb:3.3e}  ub:      {ub:3.3e}')
+                print(f'____________________________________________________')
+                print(f'{"No iter":^10}|{"alpha radius":^20}|{"Violation Flag":^20}')
+                print(f'____________________________________________________')
             # Bisection algorithm
             for i in range(maxiter):
                 mp = lb + (ub - lb)/2
@@ -530,11 +536,11 @@ class DSI():
                     lb = mp
                     if ub - lb <= tol:
                         if print_flag:
-                            print(i + 1, mp, flag)
+                            print(f'{i + 1:^10}|{mp:^20.3e}|{str(flag):^20}')
                         sol_flag = f'[{i + 1}] Optimal amul found: {mp:6f}   alpha: {a*mp:6f}   Tol: {tol:1.3e}   Gap: {ub - lb:1.3e}\nvnum: {vnum}   maxvnum: {maxvnum}'
                         break
                 if print_flag:
-                    print(i + 1, mp, flag)
+                    print(f'{i + 1:^10}|{mp:^20.3e}|{str(flag):^20}')
             if (i + 1) == maxiter:
                 sol_flag = f'Max iterations reached: {maxiter} iterations  amul: {mp:6f}'
         if print_flag:
