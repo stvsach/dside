@@ -213,13 +213,6 @@ class DSI():
         """
         self.opt = self.default_opt.copy()
         return None
-    
-    def update_opt(self, new_opt):
-        """
-        Update current self.opt from contents of new_opt dictionary.
-        """
-        self.opt.update(new_opt)
-        return None
         
     def screen(self, constraints):
         """
@@ -249,7 +242,7 @@ class DSI():
         vio['SatFlag'] = False
         self.sat = sat
         self.vio = vio
-        return sat, vio
+        return None
     
     def help(self, print_opt = False):
         """
@@ -260,20 +253,20 @@ class DSI():
         print('# 1. Create instance of ds with data from DataFrame df')
         print('ds = dside.DSI(df)')
         print('# 2. Screen the points using the constraints (dictionary)')
-        print('p = ds.screen(constraints)')
+        print('ds.screen(constraints)')
         print('# 3. Find DSp boundaries based on vnames (list of variable names for the axes)')
-        print('shp = ds.find_DSp(vnames)')
+        print('ds.find_DSp(vnames)')
         print('# 4. Plot the design space and the samples')
-        print('r = ds.plot(vnames)')
+        print('ds.plot(vnames)')
         print('# 5. Plot the nominal point and AOR based on point x (list/numpy array)')
-        print('r = ds.find_AOR(x)')
+        print('ds.find_AOR(x)')
         print('# 6. Save the results in detailed output.txt file and output.pkl file')
         print("ds.send_output('output')")
         if print_opt:
             print('\n# ----- Options ----- #')
             for i in list(self.opt.keys()):
                 print(f'{i:10}: {self.opt[i]}')
-        return self.opt
+        return None
     
     def plot(self, vnames = None, opt = {}):
         """
@@ -455,7 +448,7 @@ class DSI():
         plt.tight_layout()
         if opt['save_flag']:
             plt.savefig(opt['save_name'], dpi = opt['save_dpi'])
-        return self.report
+        return None
     
     def find_DSp(self, vnames = None, opt = {}):
         """
@@ -567,7 +560,7 @@ class DSI():
         end_t = time()
         comp_t = end_t - start_t
         self.report['time'] = comp_t
-        return shp
+        return None
     
     def alphashape_2D(self, P, alpha):
         """
@@ -642,8 +635,6 @@ class DSI():
     def alphashape_3D(self, P, alpha):
         """
         Calculate the alphashape boundary from a point cloud P (3D np array)
-        Adapted from Geun (https://stackoverflow.com/users/9091202/geun)
-        https://stackoverflow.com/a/58113037
 
         Compute the alpha shape (concave hull) of a set of 3D points.
         Parameters:
@@ -711,34 +702,6 @@ class DSI():
         shp['size'] = 420e-10
         return shp
 
-    def collect_frames(self, anielev = 10, sfolder = 'animation', sname = 'plot',\
-         leading_no = 0, sdpi = 100):
-        """
-        ONLY FOR 3D PLOTS
-        Collect .png images for animation of plot by rotating the 3D plot
-        720 images will be collected with 0.5 increments for a total of 1 whole rotation
-        Args:
-            ax ([type]): matplotlib axes
-            anielev ([type]): elevation of the figure
-            sfolder ([type]): string of the save folder
-            sname ([type]): save name of the pictures generated, 
-            will be followed by {i:04}.png
-            sdpi (int, optional): [saved picture dpi]. Defaults to 100.
-        """
-        import matplotlib.pyplot as plt
-        # Create save folder
-        import os
-        try:
-            os.makedirs(sfolder)
-        except FileExistsError:
-            print('Folder already exist')
-            
-        ax = self.ax
-        ax.view_init(elev = anielev, azim = 0)
-        for ii in range(0, 2*360, 1):
-                ax.azim += 0.5
-                plt.savefig(f'{sfolder}{sname}_frame_{leading_no + ii:04}.png',\
-                    dpi = sdpi)
     def inside2D(self, x, shp = None):
         """
         Returns False if x is not in self.shp, True otherwise (2D)
@@ -764,8 +727,6 @@ class DSI():
         """
         Returns False if x is not in self.shp, True otherwise (3D)
         x: list of [x, y, z], or [[x1, y1, z1], [x2, y2, z2], ...]
-        https://stackoverflow.com/a/57901916
-        https://stackoverflow.com/a/41851137/12056867
         """
         import numpy as np
         if shp == None:
@@ -1009,7 +970,7 @@ class DSI():
             plt.legend(loc = opt['legloc'],\
                 framealpha = opt['framealpha']).set_zorder(opt['legendzorder'])
         
-        return fs_R
+        return None
     
     def send_output(self, output_filename = 'DSI_output', appendix = False,\
             rp_pkl = False):
@@ -1127,4 +1088,4 @@ class DSI():
             with open(output_filename + '.pkl', 'wb') as handle:
                 pickle.dump(report_pkl, handle, protocol = pickle.HIGHEST_PROTOCOL)
             print(f'Pickle file saved at: {output_filename}.pkl')
-        return report_pkl
+        return None
