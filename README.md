@@ -1,6 +1,5 @@
 # dside
 
-[![Python package](https://github.com/stvsach/dside/actions/workflows/python-package.yml/badge.svg)](https://github.com/stvsach/dside/actions/workflows/python-package.yml)
 [![Documentation Status](https://readthedocs.org/projects/dside/badge/?version=latest)](https://dside.readthedocs.io/en/latest/?badge=latest)
 [![PyPI](https://img.shields.io/pypi/v/dside.svg)](https://pypi.org/project/dside)
 [![Downloads](https://pepy.tech/badge/dside)](https://pepy.tech/project/dside)
