@@ -15,20 +15,20 @@ pip install dside
 ```
 
 ## Quick Overview
-Use this tool to visualize 2D and 3D design spaces, calculate NOR, and, MPAR.
+Use this tool to visualize 2D and 3D design spaces, obtain mathematical representations of the design space boundary in the form of alpha shapes, calculate the size of the design space, and investigate nominal operating points in terms of performance and flexibility (acceptable ranges).
 
 ```
 import dside
 # 1. Create instance of ds with data from DataFrame df
 ds = dside.DSI(df)
 # 2. Screen the points using the constraints (dictionary)
-p = ds.screen(constraints)
+ds.screen(constraints)
 # 3. Find DSp boundaries based on vnames (list of variable names for the axes)
-shp = ds.find_DSp(vnames)
+ds.find_DSp(vnames)
 # 4. Plot the design space and the samples
-r = ds.plot(vnames)
+ds.plot(vnames)
 # 5. Plot the nominal point and AOR based on point x (list/numpy array)
-r = ds.find_AOR(x)
+ds.find_AOR(x)
 # 6. Save the results in detailed output.txt file
 ds.send_output('output')
 ```
