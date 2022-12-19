@@ -15,6 +15,9 @@ def Sobol_sequence(lbd, ubd, power_no):
     return inputs
 
 def qcp4con(x1, x2, x3):
+    # qcp4con problem from Metta et al (2020)
+    # https://doi.org/10.1002/aic.17095
+    
     A = np.array([[0, 0, 1], [0, -1, 0], [-2, 1, -1]])
     b = np.array([[3], [0], [4]])
     y = np.array([[1.5], [-0.5], [-5]])

@@ -15,7 +15,7 @@ def Sobol_sequence(lbd, ubd, power_no):
     return inputs
 
 def ex3(x1, x2):
-    ## 4.1. Nonlinear nonconvex test problem\
+    ## ex3 problem from Rogers & Ierapetritou (2015)
     ## https://doi.org/10.1016/j.ces.2015.06.014
     g1 = -2*x1 + x2 - 15
     g2 = x1**2/2 + 4*x1 - x2 - 5
