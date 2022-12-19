@@ -9,7 +9,7 @@ Design space identification tool for plotting and analysing design spaces (2D an
 
 
 ## Installation
-Currently, dside requires pandas, numpy, matplotlib, and shapely. dside can be installd with the following commands.
+Currently, dside requires pandas, numpy, matplotlib, and shapely. dside can be installed with the following commands.
 ```bash
 pip install dside
 ```
