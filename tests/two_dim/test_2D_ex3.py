@@ -1,4 +1,4 @@
-from src.dside import DSI
+from dside import DSI
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
