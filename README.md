@@ -1,4 +1,9 @@
 # dside
+
+[![Python package](https://github.com/stvsach/dside/actions/workflows/python-package.yml/badge.svg)](https://github.com/stvsach/dside/actions/workflows/python-package.yml)
+[![PyPI](https://img.shields.io/pypi/v/dside.svg)](https://pypi.org/project/dside)
+[![Downloads](https://pepy.tech/badge/dside)](https://pepy.tech/project/dside)
+
 Design space identification tool for plotting and analysing design spaces (2D and 3D). Constraints with respect to key performance indicators (KPIs) are used to categorize the samples. Concave hulls (alpha shape) are used to identify design space (DSp) and quantify the size of the space. Given nominal operating point (NOP), an acceptable operating region (AOR) can be quantified to find the maximum multivariate allowable disturbance that the process can still handle while satisfying all constraints (multivariate proven acceptable range - MPAR).
 
 

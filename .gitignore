@@ -1,5 +1,5 @@
 # Custom
-tests/
+locals/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
