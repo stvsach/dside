@@ -1007,9 +1007,9 @@ class DSI():
         f.write(f'\n# -------------------------- RESULTS -------------------------- #\n')
         f.write(f'Design space size: {rp["space_size"]:10f}\n')
         f.write(f'Number of samples in DSp: {self.sat.shape[0]}\n\n')
-        f.write(f'Average {rp["hmv"]["name"]}:    {rp["hmv"]["mean"]:10f}\n')
-        f.write(f'DS Maximum {rp["hmv"]["name"]}: {rp["hmv"]["max"]:10f}\n')
-        f.write(f'DS Minimum {rp["hmv"]["name"]}: {rp["hmv"]["min"]:10f}\n')
+        f.write(f'Average {rp["hmv"]["name"]}:    {rp["hmv"]["mean"]:10}\n')
+        f.write(f'DS Maximum {rp["hmv"]["name"]}: {rp["hmv"]["max"]:10}\n')
+        f.write(f'DS Minimum {rp["hmv"]["name"]}: {rp["hmv"]["min"]:10}\n')
         f.write(f'\n-----------------------------------------------------------------\n')
         f.write(f'Detailed maximum point: \n')
         if type(rp["hmv"]["max_sample"]) != str:
@@ -1052,11 +1052,11 @@ class DSI():
                             f.write(f'\nNumber of samples inside AOR:' +\
                                 f'{rep["nosam"]}\n')
                             f.write(f'Average {rep["hmv"]["name"]}:' +\
-                                f'{rep["hmv"]["mean"]:10f}\n')
+                                f'{rep["hmv"]["mean"]:10}\n')
                             f.write(f'DS Maximum {rep["hmv"]["name"]}:' +\
-                                f'{rep["hmv"]["max"]:10f}\n')
+                                f'{rep["hmv"]["max"]:10}\n')
                             f.write(f'DS Minimum {rep["hmv"]["name"]}:' +\
-                                f'{rep["hmv"]["min"]:10f}\n')
+                                f'{rep["hmv"]["min"]:10}\n')
                             f.write(f'\n-----------------------------------------------'+\
                                 '--------------------------------------------------\n')
                             f.write(f'Detailed maximum point: \n')
