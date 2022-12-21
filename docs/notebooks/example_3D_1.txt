@@ -1,0 +1,26 @@
+Design Space Identification
+Dataset name: example_3D_1
+
+No of samples: 1024
+Variables/parameters varied: 
+MV1
+MV2
+MV3
+
+Constraints used: 
+KPI1         Lower bound:          0   Upper bound:         20
+KPI2         Lower bound:          0   Upper bound:          6
+
+# -------------------------- RESULTS -------------------------- #
+Design space size:   0.481323
+Number of samples in DSp: 590
+
+Average None:    -         
+DS Maximum None: -         
+DS Minimum None: -         
+
+-----------------------------------------------------------------
+Detailed maximum point: 
+Detailed minimum point: 
+
+-----------------------------------------------------------------

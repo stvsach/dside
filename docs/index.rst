@@ -7,7 +7,7 @@
    :caption: Contents:
 
    notebooks/example_2D
-
+   notebooks/example_3D
 
 
 Indices and tables
