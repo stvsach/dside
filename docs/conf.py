@@ -9,7 +9,7 @@
 project = 'dside'
 copyright = '2022, Steven Sachio'
 author = 'Steven Sachio'
-release = '0.2.0.5'
+release = '1.0.0'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
