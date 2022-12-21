@@ -6,6 +6,8 @@
    :maxdepth: 2
    :caption: Contents:
 
+   notebooks/example_2D
+
 
 
 Indices and tables
