@@ -8,6 +8,7 @@
 
    notebooks/example_2D
    notebooks/example_3D
+   notebooks/options
 
 
 Indices and tables
