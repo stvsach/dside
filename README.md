@@ -32,5 +32,5 @@ ds.find_AOR(x)
 ds.send_output('output')
 ```
 
-![image](https://github.com/stvsach/dside/blob/main/Fig/2D.svg)
-![image](https://github.com/stvsach/dside/blob/main/Fig/3D.svg)
+![image](https://raw.githubusercontent.com/stvsach/dside/main/Fig/2D.svg)
+![image](https://raw.githubusercontent.com/stvsach/dside/main/Fig/3D.svg)
