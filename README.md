@@ -22,7 +22,7 @@ import dside
 ds = dside.DSI(df)
 # 2. Screen the points using the constraints (dictionary)
 ds.screen(constraints)
-# 3. Find DSp boundaries based on vnames (list of variable names for the axes)
+# 3. Find DSp boundaries based on vnames (list of variable names)
 ds.find_DSp(vnames)
 # 4. Plot the design space and the samples
 ds.plot(vnames)
