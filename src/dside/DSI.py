@@ -508,11 +508,11 @@ class DSI():
             ub = opt['ub']
             maxiter = opt['maxiter']
             if print_flag:
-                print('Starting bisection search for alpha radius')
+                print('Bisection search for alpha multiplier (radius)')
                 print(f'    tol: {tol:3.3e}  maxiter: {maxiter}')
                 print(f'    lb:  {lb:3.3e}  ub:      {ub:3.3e}')
                 print(f'____________________________________________________')
-                print(f'{"No iter":^10}|{"alpha radius":^20}|{"Violation Flag":^20}')
+                print(f'{"No iter":^10}|{"alpha multiplier":^20}|{"Violation Flag":^20}')
                 print(f'____________________________________________________')
             # Bisection algorithm
             for i in range(maxiter):
@@ -537,7 +537,7 @@ class DSI():
                     if ub - lb <= tol:
                         if print_flag:
                             print(f'{i + 1:^10}|{mp:^20.3e}|{str(flag):^20}')
-                        sol_flag = f'[{i + 1}] Optimal amul found: {mp:6f}   alpha: {a*mp:6f}   Tol: {tol:1.3e}   Gap: {ub - lb:1.3e}\nvnum: {vnum}   maxvnum: {maxvnum}'
+                        sol_flag = f'[{i + 1}] Optimal amul: {mp:1.4e}   alpha: {a*mp:1.3e}\nTol: {tol:1.3e}   Bisection Gap: {ub - lb:1.3e}\nvnum: {vnum}   maxvnum: {maxvnum}'
                         break
                 if print_flag:
                     print(f'{i + 1:^10}|{mp:^20.3e}|{str(flag):^20}')
