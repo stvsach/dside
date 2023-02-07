@@ -114,7 +114,7 @@ class DSI():
             'hidedsp': False, # If True, hides the surface/boundary
             
             # ----- Plot Format ----- #
-            'czorder': False,     # computed_zorder for 3D plots settings
+            'czorder': True,     # computed_zorder for 3D plots settings
             'fs': (6, 4),         # Figure size
             'bw': False,          # If True, use black-white template
             'alpha': 1,           # Transparency of points
@@ -571,8 +571,6 @@ class DSI():
     def alphashape_2D(self, P, alpha):
         """
         Calculate the alphashape boundary from a point cloud P (2D np array)
-        Adapted from Kostas Markakis (https://stackoverflow.com/users/10105748/kostas-markakis)
-        https://stackoverflow.com/a/62951837
         """
         from shapely.geometry import MultiLineString
         from shapely.ops import unary_union, polygonize
@@ -657,8 +655,8 @@ class DSI():
         if tetra == None:
             tetra = Delaunay(P)
             # Find radius of the circumsphere.
-            # By definition, radius of the sphere fitting inside the tetrahedral needs 
-            # to be smaller than alpha value
+            # By definition, radius of the sphere fitting inside the
+            # tetrahedral needs to be smaller than alpha value
             # http://mathworld.wolfram.com/Circumsphere.html
 
             tetrapos = np.take(P, tetra.vertices,axis=0)
