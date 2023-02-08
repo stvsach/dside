@@ -114,7 +114,7 @@ class DSI():
             'hidedsp': False, # If True, hides the surface/boundary
             
             # ----- Plot Format ----- #
-            'czorder': True,     # computed_zorder for 3D plots settings
+            'czorder': False,     # computed_zorder for 3D plots settings
             'fs': (6, 4),         # Figure size
             'bw': False,          # If True, use black-white template
             'alpha': 1,           # Transparency of points
@@ -198,7 +198,7 @@ class DSI():
             'tol': 0.001,     # Bisection tolerance (on the MV which is amul)
             'lb': 0.001,      # Lower bound of initial bisection run
             'ub': 5,          # Upper bound of initial bisection run
-            'printF': False,  # If true, print iter details
+            'printF': True,  # If true, print iter details
             'maxvp': 0,       # Maximum allowed percentage of vio in DSp
         }
         self.opt = self.default_opt.copy()
