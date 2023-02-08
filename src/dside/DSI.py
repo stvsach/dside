@@ -394,7 +394,7 @@ class DSI():
         # ----- Design space surface/boundary ----- #
         if opt['hidedsp'] == False:
             if self.space_size == None:
-                self.shp = self.find_DSp(vnames, opt = opt)
+                self.find_DSp(vnames, opt = opt)
             shp = self.shp
             if dim == 2:
                 plt.plot(*zip(*shp['edges_val']),\
