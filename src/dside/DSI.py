@@ -22,6 +22,17 @@ def get_at_time(df, t, time_label = 'Time'):
                 dft[i] = sliced.iloc[0]
     return pd.DataFrame(dft).T
 
+def Sobol_sequence(lbd, ubd, power_no):
+    """
+    Create 2^power_no of inputs for sampling based on the lists of lbd (lower
+    bound) and ubd (upper bound).
+    """
+    from scipy.stats import qmc
+    sampler = qmc.Sobol(d = len(lbd), scramble = False)
+    inputs = sampler.random_base2(m = power_no)
+    inputs = qmc.scale(inputs, lbd, ubd)
+    return inputs
+
 def update_ds(ds):
     """
     Updates old ds options with the new ones
