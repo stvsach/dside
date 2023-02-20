@@ -94,6 +94,7 @@ class DSI():
         self.all_x = {}
         self.space_size = None
         self.tetra = None
+        self.DTspreadsheet = None
         self.r = None
         
         # Set default color map for heat map plot
@@ -595,32 +596,36 @@ class DSI():
         import numpy as np
         import pandas as pd
 
-        # Get Delaunay triangulation of the points
-        tri = Delaunay(P)
-        simps = tri.simplices
-        triP = P[simps]
+        spreadsheet = self.DTspreadsheet
+        if type(spreadsheet) == type(None):
+            # Get Delaunay triangulation of the points
+            tri = Delaunay(P)
+            simps = tri.simplices
+            triP = P[simps]
 
-        # --- Calculating circumcircle radius and center (vectorised) --- #
-        PA = triP[:, 0, :]; Ax = PA[:, 0]; Ay = PA[:, 1]
-        PB = triP[:, 1, :]; Bx = PB[:, 0]; By = PB[:, 1]
-        PC = triP[:, 2, :]; Cx = PC[:, 0]; Cy = PC[:, 1]
+            # --- Calculating circumcircle radius and center (vectorised) --- #
+            PA = triP[:, 0, :]; Ax = PA[:, 0]; Ay = PA[:, 1]
+            PB = triP[:, 1, :]; Bx = PB[:, 0]; By = PB[:, 1]
+            PC = triP[:, 2, :]; Cx = PC[:, 0]; Cy = PC[:, 1]
 
-        # translation of vertex A to the origin
-        Axo = Ax - Ax; Bxo = Bx - Ax; Cxo = Cx - Ax
-        Ayo = Ay - Ay; Byo = By - Ay; Cyo = Cy - Ay
+            # translation of vertex A to the origin
+            Bxo = Bx - Ax; Cxo = Cx - Ax # Axo = Ax - Ax; 
+            Byo = By - Ay; Cyo = Cy - Ay # Ayo = Ay - Ay; 
 
-        Do = 2*(Bxo*Cyo - Byo*Cxo)
-        Uxo = (1/Do)*(Cyo*(Bxo**2 + Byo**2) - Byo*(Cxo**2 + Cyo**2))
-        Uyo = (1/Do)*(Bxo*(Cxo**2 + Cyo**2) - Cxo*(Bxo**2 + Byo**2))
-        R = np.sqrt(Uxo**2 + Uyo**2)          # radius of circumcircle
-        U = np.array([Uxo + Ax, Uyo + Ay]).T  # center of circumcircle
+            Do = 2*(Bxo*Cyo - Byo*Cxo)
+            Uxo = (1/Do)*(Cyo*(Bxo**2 + Byo**2) - Byo*(Cxo**2 + Cyo**2))
+            Uyo = (1/Do)*(Bxo*(Cxo**2 + Cyo**2) - Cxo*(Bxo**2 + Byo**2))
+            R = np.sqrt(Uxo**2 + Uyo**2)          # radius of circumcircle
+            U = np.array([Uxo + Ax, Uyo + Ay]).T  # center of circumcircle
 
-        spreadsheet = pd.DataFrame(simps, columns = ['p1', 'p2', 'p3'])
-        spreadsheet[['p1x', 'p1y']] = PA
-        spreadsheet[['p2x', 'p2y']] = PB
-        spreadsheet[['p3x', 'p3y']] = PC
-        spreadsheet[['Ux', 'Uy']] = U
-        spreadsheet['r'] = R
+            spreadsheet = pd.DataFrame(simps, columns = ['p1', 'p2', 'p3'])
+            spreadsheet[['p1x', 'p1y']] = PA
+            spreadsheet[['p2x', 'p2y']] = PB
+            spreadsheet[['p3x', 'p3y']] = PC
+            spreadsheet[['Ux', 'Uy']] = U
+            spreadsheet['r'] = R
+
+            self.DTspreadsheet = spreadsheet
 
         alpha_spreadsheet = spreadsheet[spreadsheet['r'] <= alpha].copy()
 
@@ -633,6 +638,7 @@ class DSI():
 
 
         # ----- Identification of Regions and Ordering Boundary ----- #
+        # Implemented 2D breadth-first search
         # Create worksheet
         ws = pd.DataFrame(edges[edges[:, 0].argsort()])
         ws['visit'] = False
@@ -664,13 +670,19 @@ class DSI():
             empty_v1 = False
             empty_v2 = False
             change_init_flag = False
-            while change_init_flag == False: # while v1 and v2 is not empty
-                # make working_sheet for easier manipulated
+            while change_init_flag == False: # while v1 and v2 are not empty
+                # make working_sheet for easier manipulation
                 w_s = ws[ws['visit'] == False].copy()
 
                 # get v1 and v2 (contains current_vert1 and 2)
-                v1 = pd.concat([w_s[w_s[0] == current_vert1], w_s[w_s[1] == current_vert1]])[[0, 1]]
-                v2 = pd.concat([w_s[w_s[0] == current_vert2], w_s[w_s[1] == current_vert2]])[[0, 1]]
+                v1 = pd.concat(
+                    [w_s[w_s[0] == current_vert1], 
+                     w_s[w_s[1] == current_vert1]]
+                    )[[0, 1]]
+                v2 = pd.concat(
+                    [w_s[w_s[0] == current_vert2], 
+                     w_s[w_s[1] == current_vert2]]
+                    )[[0, 1]]
 
                 # check if v1 is empty
                 if v1.shape[0] != 0:
@@ -713,7 +725,6 @@ class DSI():
             'P': P, 
             'simplices': simps, 
             'edges': edges, 
-            'edges_val': P[edges], 
             'alpha': alpha,
             'ws': ws,
             'spreadsheet': spreadsheet, 
