@@ -207,10 +207,11 @@ class DSI():
             'extra_points': [], # Extra points to be used to design space identification
             'maxiter': 50,    # Maximum bisection iterations
             'tol': 0.001,     # Bisection tolerance (on the MV which is amul)
-            'lb': 0.001,      # Lower bound of initial bisection run
-            'ub': 5,          # Upper bound of initial bisection run
-            'printF': True,  # If true, print iter details
-            'maxvp': 0,       # Maximum allowed percentage of vio in DSp
+            'lb': 0.001,        # Lower bound of initial bisection run
+            'ub': 5,            # Upper bound of initial bisection run
+            'printF': True,     # If true, print iter details
+            'maxvp': 0,         # Maximum allowed percentage of vio in DSp
+            'check_tol': 1e-20, # Point check calculation error tolerance
         }
         self.opt = self.default_opt.copy()
         self.bw_template = {'alpha': 1, 'satcolor': 'gray', 'viocolor': 'black', \
@@ -408,10 +409,17 @@ class DSI():
                 self.find_DSp(vnames, opt = opt)
             shp = self.shp
             if dim == 2:
-                plt.plot(*zip(*shp['edges_val']),\
-                    linewidth = opt['dspwidth'], linestyle = opt['dspstyle'],\
-                    color = opt['dspcolor'], label = opt['dsplabel'],\
-                    zorder = opt['dspzorder'])
+                for i in range(len(shp['boundaries'])):
+                    if i == 0:
+                        plt.plot(*zip(*(shp['P'][shp['boundaries'][i]])),\
+                            linewidth = opt['dspwidth'], linestyle = opt['dspstyle'],\
+                            color = opt['dspcolor'], label = opt['dsplabel'],\
+                            zorder = opt['dspzorder'])
+                    else:
+                        plt.plot(*zip(*(shp['P'][shp['boundaries'][i]])),\
+                            linewidth = opt['dspwidth'], linestyle = opt['dspstyle'],\
+                            color = opt['dspcolor'],\
+                            zorder = opt['dspzorder'])
 
             if dim == 3:
                 surf = ax.plot_trisurf(*zip(*shp['P']), triangles = shp['tri'], \
@@ -568,7 +576,7 @@ class DSI():
         space_size = shp['size']
         self.shp = shp
         self.space_size = space_size
-        self.bF = shp['tri']
+        self.bF = shp['simplices']
         self.P = shp['P']
         self.report['space_size'] = space_size
         self.report['sol_flag'] = sol_flag
@@ -583,57 +591,138 @@ class DSI():
         """
         Calculate the alphashape boundary from a point cloud P (2D np array)
         """
-        from shapely.geometry import MultiLineString
-        from shapely.ops import unary_union, polygonize
         from scipy.spatial import Delaunay
-        from collections import Counter
         import numpy as np
-        import itertools
+        import pandas as pd
 
-        v = Delaunay(P).vertices
-        # Calculate the sides of the triangles
-        a = (P[v][:, 0][:, 0] - P[v][:, 1][:, 0])**2 + \
-            (P[v][:, 0][:, 1] - P[v][:, 1][:, 1])**2
-        b = (P[v][:, 1][:, 0] - P[v][:, 2][:, 0])**2 + \
-            (P[v][:, 1][:, 1] - P[v][:, 2][:, 1])**2
-        c = (P[v][:, 2][:, 0] - P[v][:, 0][:, 0])**2 + \
-            (P[v][:, 2][:, 1] - P[v][:, 0][:, 1])**2
-        a, b, c = np.sqrt([a, b, c])
-        s = (a + b + c)*0.5
-        area = np.sqrt(s*(s - a)*(s - b)*(s - c)) # area from Heron's formula
-        alpha_filter = a*b*c/(4.0*area) < alpha
+        # Get Delaunay triangulation of the points
+        tri = Delaunay(P)
+        simps = tri.simplices
+        triP = P[simps]
 
-        # Filter vertices of alpha shape based on alpha radius
-        tri = v[alpha_filter]
-        # edges = np.vstack([edges[:, 0:2], edges[:, 1:3], np.delete(edges, 2, 1)])
-        # edges = list(zip(edges[:, 0], edges[:, 1]))
-        edges = [tuple(sorted(cb)) for e in tri for cb in itertools.combinations(e, 2)]
+        # --- Calculating circumcircle radius and center (vectorised) --- #
+        PA = triP[:, 0, :]; Ax = PA[:, 0]; Ay = PA[:, 1]
+        PB = triP[:, 1, :]; Bx = PB[:, 0]; By = PB[:, 1]
+        PC = triP[:, 2, :]; Cx = PC[:, 0]; Cy = PC[:, 1]
 
-        count = Counter(edges)
-        # Keep only edges that appear one time (concave hull edges)
-        edges = [e for e, c in count.items() if c == 1]
-        edges_val = [(P[e[0]], P[e[1]]) for e in edges]
+        # translation of vertex A to the origin
+        Axo = Ax - Ax; Bxo = Bx - Ax; Cxo = Cx - Ax
+        Ayo = Ay - Ay; Byo = By - Ay; Cyo = Cy - Ay
 
-        # Return points in order for plotting
-        ml = MultiLineString(edges_val)
-        poly = polygonize(ml)
-        hull = unary_union(list(poly))
-        hull_vertices = hull.exterior.coords.xy
-        h = np.zeros((len(hull_vertices[0]), 2))
-        h[:, 0] = hull_vertices[0]
-        h[:, 1] = hull_vertices[1]
+        Do = 2*(Bxo*Cyo - Byo*Cxo)
+        Uxo = (1/Do)*(Cyo*(Bxo**2 + Byo**2) - Byo*(Cxo**2 + Cyo**2))
+        Uyo = (1/Do)*(Bxo*(Cxo**2 + Cyo**2) - Cxo*(Bxo**2 + Byo**2))
+        R = np.sqrt(Uxo**2 + Uyo**2)          # radius of circumcircle
+        U = np.array([Uxo + Ax, Uyo + Ay]).T  # center of circumcircle
 
-        shp = {}
-        shp['P'] = P
-        shp['verts'] = np.unique(edges)
-        shp['tri'] = tri
-        shp['tetras'] = None
-        shp['edges'] = edges
-        shp['edges_val'] = h
-        shp['alpha'] = alpha
+        spreadsheet = pd.DataFrame(simps, columns = ['p1', 'p2', 'p3'])
+        spreadsheet[['p1x', 'p1y']] = PA
+        spreadsheet[['p2x', 'p2y']] = PB
+        spreadsheet[['p3x', 'p3y']] = PC
+        spreadsheet[['Ux', 'Uy']] = U
+        spreadsheet['r'] = R
+
+        alpha_spreadsheet = spreadsheet[spreadsheet['r'] <= alpha].copy()
+
+        # ----- Get edge lines only ----- #
+        simps = alpha_spreadsheet[['p1', 'p2', 'p3']].to_numpy()
+        edgeComb = np.array([(0, 1), (0, 2), (1, 2)]) # comb to separate tri to lines
+        edges = simps[:, edgeComb].reshape(-1, 2) # separate tri to lines
+        edges.sort(axis = 1) # sort vertex indices
+        edges = pd.DataFrame(edges).drop_duplicates(keep = False).to_numpy() # get unique entries only
+
+
+        # ----- Identification of Regions and Ordering Boundary ----- #
+        # Create worksheet
+        ws = pd.DataFrame(edges[edges[:, 0].argsort()])
+        ws['visit'] = False
+        ws['region'] = np.NaN
+
+        change_init_flag = False
+        reg = 0
+        boundaries = [] # record ordered boundary vertices
+        # Loop over every line to categorise them into regions
+        while ws[ws['visit'] == False].shape[0] > 0:
+            reg += 1
+
+            # create sorted bounds
+            bounds = []
+            # find a point which have not been visited yet
+            cur_idx = ws[ws['visit'] == False].index[0]
+            ws.loc[cur_idx, 'visit'] = True # set it to be visited
+            ws.loc[cur_idx, 'region'] = reg # categorise to region reg
+            
+            # taking both directions of the line to search neighbouring vertices
+            current_vert1 = int(ws.loc[cur_idx][0])
+            current_vert2 = int(ws.loc[cur_idx][1])
+
+            # record boundary
+            bounds.append(current_vert1)
+            bounds.append(current_vert2)
+
+            # setting flags for exploration of neighbouring vertices
+            empty_v1 = False
+            empty_v2 = False
+            change_init_flag = False
+            while change_init_flag == False: # while v1 and v2 is not empty
+                # make working_sheet for easier manipulated
+                w_s = ws[ws['visit'] == False].copy()
+
+                # get v1 and v2 (contains current_vert1 and 2)
+                v1 = pd.concat([w_s[w_s[0] == current_vert1], w_s[w_s[1] == current_vert1]])[[0, 1]]
+                v2 = pd.concat([w_s[w_s[0] == current_vert2], w_s[w_s[1] == current_vert2]])[[0, 1]]
+
+                # check if v1 is empty
+                if v1.shape[0] != 0:
+                    ws.loc[v1.index[0], 'visit'] = True # set it to be visited
+                    ws.loc[v1.index[0], 'region'] = reg # categorise to region reg
+                    next_vert1 = v1.T[v1.T != current_vert1].dropna().iloc[0, 0] # get next vertex
+                    current_vert1 = int(next_vert1)
+                    bounds.insert(0, current_vert1) # record boundary
+                else:
+                    empty_v1 = True
+
+                # check if v2 is empty
+                if v2.shape[0] != 0:
+                    ws.loc[v2.index[0], 'visit'] = True # set it to be visited
+                    ws.loc[v2.index[0], 'region'] = reg # categorise to region reg
+                    next_vert2 = v2.T[v2.T != current_vert2].dropna().iloc[0, 0] # get next vertex
+                    current_vert2 = int(next_vert2)
+                    bounds.append(current_vert2) # record boundary
+                else:
+                    empty_v2 = True
+                
+                # if both v1 and v2 are empty, set change_init_flag to true
+                if empty_v2 == True:
+                    if empty_v1 == True:
+                        change_init_flag = True
+                    else:
+                        pass
+                else:
+                    pass
+            # Check if the last entry in bounds is the same as first
+            if bounds[-1] != bounds[0]:
+                if bounds[-2] == bounds[0]: # check if second last is same as first
+                    bounds = bounds[:-1]    # if yes, slice boundary
+                else: # else, there may be something wrong, print warning
+                    print('WARNING: BOUNDARY FORMED MAY NOT BE CLOSED')
+            boundaries.append(np.array(bounds)) # compile boundary defined
+
+
+        shp = {
+            'P': P, 
+            'simplices': simps, 
+            'edges': edges, 
+            'edges_val': P[edges], 
+            'alpha': alpha,
+            'ws': ws,
+            'spreadsheet': spreadsheet, 
+            'alpha_spreadsheet': alpha_spreadsheet, 
+            'boundaries': boundaries
+            }
 
         # Area of alpha shape
-        v = tri
+        v = simps
         a = (P[v][:, 0][:, 0] - P[v][:, 1][:, 0])**2 + \
             (P[v][:, 0][:, 1] - P[v][:, 1][:, 1])**2
         b = (P[v][:, 1][:, 0] - P[v][:, 2][:, 0])**2 + \
@@ -717,22 +806,66 @@ class DSI():
         shp['size'] = 420e-10
         return shp
 
-    def inside2D(self, x, shp = None):
+    def inside2D(self, X, shp = None):
         """
         Returns False if x is not in self.shp, True otherwise (2D)
         x: list of [x, y], or [[x1, y1], [x2, y2], ...]
         """
         import numpy as np
-        from shapely.geometry import Point, Polygon
+        import pandas as pd
         if shp == None:
             shp = self.shp
-        poly = Polygon(shp['edges_val'])
-        dim = len(np.array(x).shape)
+        threshold = self.opt['check_tol']
+        dim = len(np.array(X).shape)
 
         if dim == 1:
-            x = [x]
-        vP = [Point(i[0], i[1]) for i in x]
-        out = [poly.contains(p) for p in vP]
+            X = [X]
+        
+        ss = shp['alpha_spreadsheet']
+        P = shp['P']
+        out = []
+        for x in X:
+            # First, filter based on general location to find relevant triangles
+            boolx = (ss[['p1x', 'p2x', 'p3x']] >= x[0]).astype('int')
+            boolx['sumx'] = boolx.sum(axis = 1)
+            booly = (ss[['p1y', 'p2y', 'p3y']] >= x[1]).astype('int')
+            booly['sumy'] = booly.sum(axis = 1)
+
+            bools = pd.concat([boolx, booly], axis = 1)
+            bools = bools[bools['sumx'] > 0]
+            bools = bools[bools['sumx'] < 3]
+            bools = bools[bools['sumy'] > 0]
+            bools = bools[bools['sumy'] < 3]
+            filtered_tri = ss.loc[bools.index]
+
+            tri = filtered_tri[['p1', 'p2', 'p3']].to_numpy()
+            coords = P[tri]
+
+            # Do point in triangle check using Barycentric coordinates - area
+            X1 = coords[:, 0, 0]
+            X2 = coords[:, 1, 0]
+            X3 = coords[:, 2, 0]
+            Y1 = coords[:, 0, 1]
+            Y2 = coords[:, 1, 1]
+            Y3 = coords[:, 2, 1]
+            tri_area = 0.5*np.abs((X2 - X1)*(Y3 - Y1) - (X3 - X1)*(Y2 - Y1))
+            area1 = 0.5*np.abs((X1 - x[0])*(Y2 - x[1]) - (X2 - x[0])*(Y1 - x[1]))
+            area2 = 0.5*np.abs((X2 - x[0])*(Y3 - x[1]) - (X3 - x[0])*(Y2 - x[1]))
+            area3 = 0.5*np.abs((X3 - x[0])*(Y1 - x[1]) - (X1 - x[0])*(Y3 - x[1]))
+            sum_area = area1 + area2 + area3
+
+            filtered_tri['area1'] = area1
+            filtered_tri['area2'] = area2
+            filtered_tri['area3'] = area3
+            filtered_tri['sum_area'] = sum_area
+            filtered_tri['tri_area'] = tri_area
+            filtered_tri['diff'] = filtered_tri['sum_area'] - filtered_tri['tri_area']
+            filtered_tri['equality'] = filtered_tri['diff'] <= threshold
+            inflag = filtered_tri['equality'].sum()
+            if inflag == 0:
+                out.append(False)
+            else:
+                out.append(True)
 
         if dim == 1:
             out = out[0]
