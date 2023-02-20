@@ -63,10 +63,10 @@ def qp(df, constraints, vnames, x = None, opt = None):
     from dside import DSI
     
     ds = DSI(df)
-    p = ds.screen(constraints)
-    r = ds.plot(vnames, opt)
+    ds.screen(constraints)
+    ds.plot(vnames, opt)
     if x != None:
-        r = ds.find_AOR(x)
+        ds.find_AOR(x)
     return ds
 
 class DSI():
@@ -93,7 +93,6 @@ class DSI():
         }
         self.all_x = {}
         self.space_size = None
-        self.tetra = None
         self.DTspreadsheet = None
         self.r = None
         
@@ -410,25 +409,34 @@ class DSI():
                 self.find_DSp(vnames, opt = opt)
             shp = self.shp
             if dim == 2:
-                for i in range(len(shp['boundaries'])):
+                for i in range(len(shp['reg_bounds_val'])):
                     if i == 0:
-                        plt.plot(*zip(*(shp['P'][shp['boundaries'][i]])),\
+                        plt.plot(*zip(*shp['reg_bounds_val'][i]),\
                             linewidth = opt['dspwidth'], linestyle = opt['dspstyle'],\
                             color = opt['dspcolor'], label = opt['dsplabel'],\
                             zorder = opt['dspzorder'])
                     else:
-                        plt.plot(*zip(*(shp['P'][shp['boundaries'][i]])),\
+                        plt.plot(*zip(*shp['reg_bounds_val'][i]),\
                             linewidth = opt['dspwidth'], linestyle = opt['dspstyle'],\
                             color = opt['dspcolor'],\
                             zorder = opt['dspzorder'])
 
             if dim == 3:
-                surf = ax.plot_trisurf(*zip(*shp['P']), triangles = shp['tri'], \
-                    color = opt['dspcolor'],\
-                    alpha = opt['dspalpha'], label = opt['dsplabel'],\
-                    zorder = opt['dspzorder'])
-                surf._facecolors2d=surf._facecolor3d
-                surf._edgecolors2d=surf._edgecolor3d
+                for i in range(len(shp['reg_bounds'])):
+                    if i == 0:
+                        surf = ax.plot_trisurf(*zip(*shp['P']), triangles = shp['reg_bounds'][i], \
+                            color = opt['dspcolor'],\
+                            alpha = opt['dspalpha'], label = opt['dsplabel'],\
+                            zorder = opt['dspzorder'])
+                        surf._facecolors2d=surf._facecolor3d
+                        surf._edgecolors2d=surf._edgecolor3d
+                    else:
+                        surf = ax.plot_trisurf(*zip(*shp['P']), triangles = shp['reg_bounds'][i], \
+                            color = opt['dspcolor'],\
+                            alpha = opt['dspalpha'],\
+                            zorder = opt['dspzorder'])
+                        surf._facecolors2d=surf._facecolor3d
+                        surf._edgecolors2d=surf._edgecolor3d
         
         # Limits for axes
         if opt['axeslimdf'] != 'best':
@@ -566,12 +574,26 @@ class DSI():
         if print_flag:
             print(sol_flag)
 
-        # Calculate volume
+        # Calculate design space size
         if dim == 3:
             volume = 0
-            for v in shp['P'][shp['tetras']]:
+            for v in shp['P'][shp['simplices']]:
                 volume += np.abs(np.dot(v[0] - v[3], np.cross(v[1] - v[3], v[2] - v[3])))/6
             shp['size'] = volume
+        else:
+            P = shp['P']
+            simps = shp['simplices']
+            v = simps
+            a = (P[v][:, 0][:, 0] - P[v][:, 1][:, 0])**2 + \
+                (P[v][:, 0][:, 1] - P[v][:, 1][:, 1])**2
+            b = (P[v][:, 1][:, 0] - P[v][:, 2][:, 0])**2 + \
+                (P[v][:, 1][:, 1] - P[v][:, 2][:, 1])**2
+            c = (P[v][:, 2][:, 0] - P[v][:, 0][:, 0])**2 + \
+                (P[v][:, 2][:, 1] - P[v][:, 0][:, 1])**2
+            a, b, c = np.sqrt([a, b, c])
+            s = (a + b + c)*0.5
+            area = np.sqrt(s*(s - a)*(s - b)*(s - c)) # area from Heron's formula
+            shp['size'] = np.sum(area)
         self.vindsp = vio[inside(vpoints, shp)]
         self.indsp = pd.concat([sat, self.vindsp]).reset_index()
         space_size = shp['size']
@@ -646,7 +668,7 @@ class DSI():
 
         change_init_flag = False
         reg = 0
-        boundaries = [] # record ordered boundary vertices
+        reg_bounds = [] # record ordered boundary vertices
         # Loop over every line to categorise them into regions
         while ws[ws['visit'] == False].shape[0] > 0:
             reg += 1
@@ -718,8 +740,12 @@ class DSI():
                     bounds = bounds[:-1]    # if yes, slice boundary
                 else: # else, there may be something wrong, print warning
                     print('WARNING: BOUNDARY FORMED MAY NOT BE CLOSED')
-            boundaries.append(np.array(bounds)) # compile boundary defined
+            reg_bounds.append(np.array(bounds)) # compile boundary defined
+        ws['region'].astype('int')
 
+        print(ws)
+        
+        reg_bounds_val = [P[i] for i in reg_bounds]
 
         shp = {
             'P': P, 
@@ -727,94 +753,151 @@ class DSI():
             'edges': edges, 
             'alpha': alpha,
             'ws': ws,
-            'spreadsheet': spreadsheet, 
-            'alpha_spreadsheet': alpha_spreadsheet, 
-            'boundaries': boundaries
+            'alpha_spreadsheet': alpha_spreadsheet,
+            'reg_bounds': reg_bounds, 
+            'reg_bounds_val': reg_bounds_val,
+            'no_reg': len(reg_bounds),
             }
-
-        # Area of alpha shape
-        v = simps
-        a = (P[v][:, 0][:, 0] - P[v][:, 1][:, 0])**2 + \
-            (P[v][:, 0][:, 1] - P[v][:, 1][:, 1])**2
-        b = (P[v][:, 1][:, 0] - P[v][:, 2][:, 0])**2 + \
-            (P[v][:, 1][:, 1] - P[v][:, 2][:, 1])**2
-        c = (P[v][:, 2][:, 0] - P[v][:, 0][:, 0])**2 + \
-            (P[v][:, 2][:, 1] - P[v][:, 0][:, 1])**2
-        a, b, c = np.sqrt([a, b, c])
-
-        s = (a + b + c)*0.5
-        area = np.sqrt(s*(s - a)*(s - b)*(s - c)) # area from Heron's formula
-        shp['size'] = np.sum(area)
         return shp
+
+    def categorise3D(self, ws, cur_idx, reg):
+        """
+        Recursive function to categorise triangles into regions
+        ws: worksheet is a pandas dataframe containing all info
+        cur_idx: current index in ws of the tri being checked (int)
+        reg: region number (int)
+        returns nothing, mutates the original ws dataframe
+        """
+        import pandas as pd
+        ws.loc[cur_idx, 'visit'] = True # set it to be visited
+        ws.loc[cur_idx, 'region'] = reg # categorise to region reg
+
+        # taking all directions to search neighbouring vertices
+        current_pair1 = ws.loc[cur_idx]['p1']
+        current_pair2 = ws.loc[cur_idx]['p2']
+        current_pair3 = ws.loc[cur_idx]['p3']
+        
+        # make working_sheet for easier manipulation
+        w_s = ws[ws['visit'] == False].copy()
+
+        v1 = pd.concat([w_s[w_s['p1'] == current_pair1], 
+                        w_s[w_s['p2'] == current_pair1], 
+                        w_s[w_s['p3'] == current_pair1]])[['p1', 'p2', 'p3']]
+        v2 = pd.concat([w_s[w_s['p1'] == current_pair2], 
+                        w_s[w_s['p2'] == current_pair2], 
+                        w_s[w_s['p3'] == current_pair2]])[['p1', 'p2', 'p3']]
+        v3 = pd.concat([w_s[w_s['p1'] == current_pair3], 
+                        w_s[w_s['p2'] == current_pair3], 
+                        w_s[w_s['p3'] == current_pair3]])[['p1', 'p2', 'p3']]
+
+        if v1.shape[0] != 0:
+            ws.loc[v1.index[0], 'visit'] = True # set it to be visited
+            ws.loc[v1.index[0], 'region'] = reg # categorise to region reg
+            self.categorise3D(ws, v1.index[0], reg)
+        else:
+            pass
+
+        if v2.shape[0] != 0:
+            ws.loc[v2.index[0], 'visit'] = True # set it to be visited
+            ws.loc[v2.index[0], 'region'] = reg # categorise to region reg
+            self.categorise3D(ws, v2.index[0], reg)
+        else:
+            pass
+
+        if v3.shape[0] != 0:
+            ws.loc[v3.index[0], 'visit'] = True # set it to be visited
+            ws.loc[v3.index[0], 'region'] = reg # categorise to region reg
+            self.categorise3D(ws, v3.index[0], reg)
+        else:
+            pass
 
     def alphashape_3D(self, P, alpha):
         """
         Calculate the alphashape boundary from a point cloud P (3D np array)
-
         Compute the alpha shape (concave hull) of a set of 3D points.
-        Parameters:
-            pos - np.array of shape (n,3) points.
-            alpha - alpha value.
-        return
-            outer surface vertex indices, edge indices, and triangle indices
         """
         from scipy.spatial import Delaunay
         import numpy as np
         import pandas as pd
-        tetra = self.tetra
-        r = self.r
-        if tetra == None:
+
+        spreadsheet = self.DTspreadsheet
+        if type(spreadsheet) == type(None):
+            # Get Delaunay triangulation of the points
             tetra = Delaunay(P)
-            # Find radius of the circumsphere.
-            # By definition, radius of the sphere fitting inside the
-            # tetrahedral needs to be smaller than alpha value
-            # http://mathworld.wolfram.com/Circumsphere.html
+            simps = tetra.simplices
+            tetraP = P[simps]
 
-            tetrapos = np.take(P, tetra.vertices,axis=0)
-            normsq = np.sum(tetrapos**2, axis=2)[:, :, None]
-            ones = np.ones((tetrapos.shape[0], tetrapos.shape[1], 1))
+            # --- Calculating circumsphere radius and center (vectorised) --- #
+            normsq = np.sum(tetraP**2, axis=2)[:, :, None]
+            ones = np.ones((tetraP.shape[0], tetraP.shape[1], 1))
 
-            a  =  np.linalg.det(np.concatenate((tetrapos, ones), axis=2))
-            a[a == 0] = 1e-30
-            Dx =  np.linalg.det(np.concatenate((normsq, tetrapos[:,:,[1,2]], ones), axis = 2))
-            Dy = -np.linalg.det(np.concatenate((normsq, tetrapos[:,:,[0,2]], ones), axis = 2))
-            Dz =  np.linalg.det(np.concatenate((normsq, tetrapos[:,:,[0,1]], ones), axis = 2))
-            c  =  np.linalg.det(np.concatenate((normsq, tetrapos), axis = 2))
-            r  =  np.sqrt(Dx**2 + Dy**2 + Dz**2 - 4*a*c)/(2*np.abs(a))
-            self.tetra = tetra
-            self.r = r
-        # Find tetrahedrals
-        tetras = tetra.vertices[r<alpha, :]
+            A = np.linalg.det(np.concatenate((tetraP, ones), axis=2))
+            A[A == 0] = 1e-30
+            Dx = np.linalg.det(np.concatenate((normsq, tetraP[:,:,[1,2]], ones), axis = 2))
+            Dy = -np.linalg.det(np.concatenate((normsq, tetraP[:,:,[0,2]], ones), axis = 2))
+            Dz = np.linalg.det(np.concatenate((normsq, tetraP[:,:,[0,1]], ones), axis = 2))
+            C = np.linalg.det(np.concatenate((normsq, tetraP), axis = 2))
 
-        # triangles
-        triComb = np.array([(0, 1, 2), (0, 1, 3), (0, 2, 3), (1, 2, 3)])
-        triangles = tetras[:, triComb].reshape(-1, 3)
-        triangles = np.sort(triangles, axis = 1)
+            Ux = Dx/(2*A)
+            Uy = Dy/(2*A)
+            Uz = Dz/(2*A)
+            U = np.array([Ux, Uy, Uz]).T   # center of circumsphere
+            R = np.sqrt(Dx**2 + Dy**2 + Dz**2 - 4*A*C)/(2*np.abs(A)) # radius of circumsphere
+            
+            spreadsheet = pd.DataFrame(simps, columns = ['p1', 'p2', 'p3', 'p4'])
+            spreadsheet[['Ux', 'Uy', 'Uz']] = U
+            spreadsheet['r'] = R
 
-        # Remove triangles that occurs twice, because they are within shapes
-        triangles = pd.DataFrame(triangles).drop_duplicates(keep = False).to_numpy()
+            self.DTspreadsheet = spreadsheet
+            
+        alpha_spreadsheet = spreadsheet[spreadsheet['r'] <= alpha].copy()
 
-        #edges
-        edgeComb = np.array([(0, 1), (0, 2), (1, 2)])
-        edges = triangles[:, edgeComb].reshape(-1, 2)
-        edges = np.sort(edges, axis = 1)
-        edges = np.unique(edges, axis = 0)
+        # ----- Get edge triangles only ----- #
+        simps = alpha_spreadsheet[['p1', 'p2', 'p3', 'p4']].to_numpy()
+        edgeComb = np.array([(0, 1, 2), (0, 1, 3), (0, 2, 3), (1, 2, 3)]) # comb to separate tetrahedrons to triangles
+        edges = simps[:, edgeComb].reshape(-1, 3) # separate tetra to tri
+        edges.sort(axis = 1) # sort vertex indices
+        edges = pd.DataFrame(edges).drop_duplicates(keep = False).to_numpy() # get unique entries only
 
-        vertices = np.unique(edges)
+        # ----- Identification of Regions ----- #
+        # Implemented 3D breadth-first search with recursive categorisation
+        sorted_tri = edges[edges[:, 0].argsort()]
+        triComb = np.array([(0, 1), (0, 2), (1, 2)]) # comb to separate tri to lines
 
-        shp = {}
-        shp['P'] = P
-        shp['verts'] = vertices
-        shp['tri'] = triangles
-        shp['edges'] = edges
-        shp['tetras'] = tetras
-        shp['edges_val'] = None
-        shp['alpha'] = alpha
+        # Create worksheet
+        ws = pd.DataFrame(sorted_tri)
+        ws['visit'] = False
+        ws['region'] = np.NaN
 
-        # volume = 0
-        # for v in P[tetras]:
-        #     volume += np.abs(np.dot(v[0] - v[3], np.cross(v[1] - v[3], v[2] - v[3])))/6
-        shp['size'] = 420e-10
+        # Connected triangles must share at least one pair of vertices
+        ws['p1'] = [str(i) for i in sorted_tri[:, triComb][:, 0, :]]
+        ws['p2'] = [str(i) for i in sorted_tri[:, triComb][:, 1, :]]
+        ws['p3'] = [str(i) for i in sorted_tri[:, triComb][:, 2, :]]
+
+        reg = 0
+        # Loop over every triangle to categorise them into regions
+        while ws[ws['visit'] == False].shape[0] > 0:
+            reg += 1
+
+            # find a point which have not been visited yet
+            cur_idx = ws[ws['visit'] == False].index[0]
+            self.categorise3D(ws, cur_idx, reg)
+
+        # Bounds based on regions
+        reg_bounds = [ws[ws['region'] == (i + 1)][[0, 1, 2]].to_numpy() for i in range(int(ws['region'].max()))]
+        reg_bounds_val = [P[i] for i in reg_bounds]
+
+        shp = {
+            'P': P, 
+            'simplices': simps, 
+            'edges': edges, 
+            'alpha': alpha,
+            'ws': ws,
+            'alpha_spreadsheet': alpha_spreadsheet,
+            'reg_bounds': reg_bounds, 
+            'reg_bounds_val': reg_bounds_val,
+            'no_reg': len(reg_bounds),
+            }
         return shp
 
     def inside2D(self, X, shp = None):
@@ -903,7 +986,7 @@ class DSI():
 
         # Find which tetrahedron the point lies in
         node_coordinates = shp['P']
-        node_ids = shp['tetras']
+        node_ids = shp['simplices']
 
         res_list = []
         for x_s in x_list:
@@ -936,7 +1019,7 @@ class DSI():
         # return res
         out = []
         for i, r in enumerate(res):
-            V = shp['P'][shp['tetras'][r]]
+            V = shp['P'][shp['simplices'][r]]
             p = x[i]
             # Find the transform matrix from orthogonal to tetrahedron system
             v1 = V[1]-V[0] ; v2 = V[2]-V[0] ; v3 = V[3]-V[0]
