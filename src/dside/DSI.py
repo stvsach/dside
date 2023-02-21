@@ -207,11 +207,10 @@ class DSI():
             'extra_points': [], # Extra points to be used to design space identification
             'maxiter': 50,    # Maximum bisection iterations
             'tol': 0.001,     # Bisection tolerance (on the MV which is amul)
-            'lb': 0.001,        # Lower bound of initial bisection run
-            'ub': 5,            # Upper bound of initial bisection run
-            'printF': True,     # If true, print iter details
-            'maxvp': 0,         # Maximum allowed percentage of vio in DSp
-            'check_tol': 1e-20, # Point check calculation error tolerance
+            'lb': 0.001,      # Lower bound of initial bisection run
+            'ub': 5,          # Upper bound of initial bisection run
+            'printF': True,   # If true, print iter details
+            'maxvp': 0,       # Maximum allowed percentage of vio in DSp
         }
         self.opt = self.default_opt.copy()
         self.bw_template = {'alpha': 1, 'satcolor': 'gray', 'viocolor': 'black', \

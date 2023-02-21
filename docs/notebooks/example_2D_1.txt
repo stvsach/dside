@@ -12,6 +12,7 @@ KPI2         Lower bound:     -1e+20   Upper bound:        100
 
 # -------------------------- RESULTS -------------------------- #
 Design space size: 240.961456
+Number of regions:          1
 Number of samples in DSp: 641
 
 Average None:    -         
