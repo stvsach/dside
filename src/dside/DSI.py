@@ -254,6 +254,12 @@ class DSI():
         vio['SatFlag'] = False
         self.sat = sat
         self.vio = vio
+        
+        # Update saved
+        self.df['SatFlag'] = 'N/A'
+        self.df.loc[sat.index, 'SatFlag'] = True
+        self.df.loc[vio.index, 'SatFlag'] = False
+        self.df['SatFlag'].astype('bool')
         return None
     
     def help(self, print_opt = False):
@@ -574,13 +580,15 @@ class DSI():
         if print_flag:
             print(sol_flag)
 
-        # Calculate design space size
+        # Calculate design space size and classify regions
         if dim == 3:
+            shp = self.classify_regions3D(shp)
             volume = 0
             for v in shp['P'][shp['simplices']]:
                 volume += np.abs(np.dot(v[0] - v[3], np.cross(v[1] - v[3], v[2] - v[3])))/6
             shp['size'] = volume
         else:
+            shp = self.classify_regions2D(shp)
             P = shp['P']
             simps = shp['simplices']
             v = simps
@@ -594,7 +602,11 @@ class DSI():
             s = (a + b + c)*0.5
             area = np.sqrt(s*(s - a)*(s - b)*(s - c)) # area from Heron's formula
             shp['size'] = np.sum(area)
-        self.vindsp = vio[inside(vpoints, shp)]
+    
+        if vpoints.shape[0] == 0:
+            self.vindsp = None
+        else:
+            self.vindsp = vio[inside(vpoints, shp)]
         self.indsp = pd.concat([sat, self.vindsp]).reset_index()
         space_size = shp['size']
         self.shp = shp
@@ -602,6 +614,7 @@ class DSI():
         self.bF = shp['simplices']
         self.P = shp['P']
         self.report['space_size'] = space_size
+        self.report['no_reg'] = self.shp['no_reg']
         self.report['sol_flag'] = sol_flag
         # self.report['opt_log'] = opt_log
         
@@ -658,6 +671,28 @@ class DSI():
         edges.sort(axis = 1) # sort vertex indices
         edges = pd.DataFrame(edges).drop_duplicates(keep = False).to_numpy() # get unique entries only
 
+        shp = {
+            'P': P, 
+            'simplices': simps, 
+            'edges': edges, 
+            'alpha': alpha,
+            'alpha_spreadsheet': alpha_spreadsheet,
+            }
+        return shp
+
+    
+    def classify_regions2D(self, shp = None):
+        """
+        Classify number of regions and their outer lines
+        """
+        import numpy as np
+        import pandas as pd
+
+        # Unpack shp
+        if type(shp) == None:
+            shp = self.shp
+        edges = shp['edges']
+        P = shp['P']
 
         # ----- Identification of Regions and Ordering Boundary ----- #
         # Implemented 2D breadth-first search
@@ -741,22 +776,75 @@ class DSI():
                 else: # else, there may be something wrong, print warning
                     print('WARNING: BOUNDARY FORMED MAY NOT BE CLOSED')
             reg_bounds.append(np.array(bounds)) # compile boundary defined
-        ws['region'].astype('int')
 
-        print(ws)
-        
+        # Bounds based on regions
+        ws['region'].astype('int')
         reg_bounds_val = [P[i] for i in reg_bounds]
+
+        shp.update(
+            {
+            'ws': ws,
+            'reg_bounds': reg_bounds, 
+            'reg_bounds_val': reg_bounds_val,
+            'no_reg': len(reg_bounds),
+            }
+        )
+        return shp
+
+    def alphashape_3D(self, P, alpha):
+        """
+        Calculate the alphashape boundary from a point cloud P (3D np array)
+        Compute the alpha shape (concave hull) of a set of 3D points.
+        """
+        from scipy.spatial import Delaunay
+        import numpy as np
+        import pandas as pd
+
+        spreadsheet = self.DTspreadsheet
+        if type(spreadsheet) == type(None):
+            # Get Delaunay triangulation of the points
+            tetra = Delaunay(P)
+            simps = tetra.simplices
+            tetraP = P[simps]
+
+            # --- Calculating circumsphere radius and center (vectorised) --- #
+            normsq = np.sum(tetraP**2, axis=2)[:, :, None]
+            ones = np.ones((tetraP.shape[0], tetraP.shape[1], 1))
+
+            A = np.linalg.det(np.concatenate((tetraP, ones), axis=2))
+            A[A == 0] = 1e-30
+            Dx = np.linalg.det(np.concatenate((normsq, tetraP[:,:,[1,2]], ones), axis = 2))
+            Dy = -np.linalg.det(np.concatenate((normsq, tetraP[:,:,[0,2]], ones), axis = 2))
+            Dz = np.linalg.det(np.concatenate((normsq, tetraP[:,:,[0,1]], ones), axis = 2))
+            C = np.linalg.det(np.concatenate((normsq, tetraP), axis = 2))
+
+            Ux = Dx/(2*A)
+            Uy = Dy/(2*A)
+            Uz = Dz/(2*A)
+            U = np.array([Ux, Uy, Uz]).T   # center of circumsphere
+            R = np.sqrt(Dx**2 + Dy**2 + Dz**2 - 4*A*C)/(2*np.abs(A)) # radius of circumsphere
+            
+            spreadsheet = pd.DataFrame(simps, columns = ['p1', 'p2', 'p3', 'p4'])
+            spreadsheet[['Ux', 'Uy', 'Uz']] = U
+            spreadsheet['r'] = R
+
+            self.DTspreadsheet = spreadsheet
+            
+        alpha_spreadsheet = spreadsheet[spreadsheet['r'] <= alpha].copy()
+
+        # ----- Get edge triangles only ----- #
+        simps = alpha_spreadsheet[['p1', 'p2', 'p3', 'p4']].to_numpy()
+        edgeComb = np.array([(0, 1, 2), (0, 1, 3), (0, 2, 3), (1, 2, 3)]) # comb to separate tetrahedrons to triangles
+        edges = simps[:, edgeComb].reshape(-1, 3) # separate tetra to tri
+        edges.sort(axis = 1) # sort vertex indices
+        edges = pd.DataFrame(edges).drop_duplicates(keep = False).to_numpy() # get unique entries only
 
         shp = {
             'P': P, 
             'simplices': simps, 
             'edges': edges, 
             'alpha': alpha,
-            'ws': ws,
             'alpha_spreadsheet': alpha_spreadsheet,
-            'reg_bounds': reg_bounds, 
-            'reg_bounds_val': reg_bounds_val,
-            'no_reg': len(reg_bounds),
             }
         return shp
 
@@ -810,54 +898,20 @@ class DSI():
             self.categorise3D(ws, v3.index[0], reg)
         else:
             pass
+        return None
 
-    def alphashape_3D(self, P, alpha):
+    def classify_regions3D(self, shp = None):
         """
-        Calculate the alphashape boundary from a point cloud P (3D np array)
-        Compute the alpha shape (concave hull) of a set of 3D points.
+        Classify number of regions and their outer triangle surfaces
         """
-        from scipy.spatial import Delaunay
         import numpy as np
         import pandas as pd
 
-        spreadsheet = self.DTspreadsheet
-        if type(spreadsheet) == type(None):
-            # Get Delaunay triangulation of the points
-            tetra = Delaunay(P)
-            simps = tetra.simplices
-            tetraP = P[simps]
-
-            # --- Calculating circumsphere radius and center (vectorised) --- #
-            normsq = np.sum(tetraP**2, axis=2)[:, :, None]
-            ones = np.ones((tetraP.shape[0], tetraP.shape[1], 1))
-
-            A = np.linalg.det(np.concatenate((tetraP, ones), axis=2))
-            A[A == 0] = 1e-30
-            Dx = np.linalg.det(np.concatenate((normsq, tetraP[:,:,[1,2]], ones), axis = 2))
-            Dy = -np.linalg.det(np.concatenate((normsq, tetraP[:,:,[0,2]], ones), axis = 2))
-            Dz = np.linalg.det(np.concatenate((normsq, tetraP[:,:,[0,1]], ones), axis = 2))
-            C = np.linalg.det(np.concatenate((normsq, tetraP), axis = 2))
-
-            Ux = Dx/(2*A)
-            Uy = Dy/(2*A)
-            Uz = Dz/(2*A)
-            U = np.array([Ux, Uy, Uz]).T   # center of circumsphere
-            R = np.sqrt(Dx**2 + Dy**2 + Dz**2 - 4*A*C)/(2*np.abs(A)) # radius of circumsphere
-            
-            spreadsheet = pd.DataFrame(simps, columns = ['p1', 'p2', 'p3', 'p4'])
-            spreadsheet[['Ux', 'Uy', 'Uz']] = U
-            spreadsheet['r'] = R
-
-            self.DTspreadsheet = spreadsheet
-            
-        alpha_spreadsheet = spreadsheet[spreadsheet['r'] <= alpha].copy()
-
-        # ----- Get edge triangles only ----- #
-        simps = alpha_spreadsheet[['p1', 'p2', 'p3', 'p4']].to_numpy()
-        edgeComb = np.array([(0, 1, 2), (0, 1, 3), (0, 2, 3), (1, 2, 3)]) # comb to separate tetrahedrons to triangles
-        edges = simps[:, edgeComb].reshape(-1, 3) # separate tetra to tri
-        edges.sort(axis = 1) # sort vertex indices
-        edges = pd.DataFrame(edges).drop_duplicates(keep = False).to_numpy() # get unique entries only
+        # Unpack shp
+        if type(shp) == None:
+            shp = self.shp
+        edges = shp['edges']
+        P = shp['P']
 
         # ----- Identification of Regions ----- #
         # Implemented 3D breadth-first search with recursive categorisation
@@ -884,89 +938,98 @@ class DSI():
             self.categorise3D(ws, cur_idx, reg)
 
         # Bounds based on regions
+        ws['region'].astype('int')
         reg_bounds = [ws[ws['region'] == (i + 1)][[0, 1, 2]].to_numpy() for i in range(int(ws['region'].max()))]
         reg_bounds_val = [P[i] for i in reg_bounds]
 
-        shp = {
-            'P': P, 
-            'simplices': simps, 
-            'edges': edges, 
-            'alpha': alpha,
+        shp.update(
+            {
             'ws': ws,
-            'alpha_spreadsheet': alpha_spreadsheet,
             'reg_bounds': reg_bounds, 
             'reg_bounds_val': reg_bounds_val,
             'no_reg': len(reg_bounds),
             }
+        )
         return shp
 
-    def inside2D(self, X, shp = None):
+    def inside2D(self, x, shp = None):
         """
+        Point in triangle checks based on Barycentric coordinates vectorised
+        Brute force check on all simplices in shp
+        Splits option included to handle memory limitations
         Returns False if x is not in self.shp, True otherwise (2D)
         x: list of [x, y], or [[x1, y1], [x2, y2], ...]
         """
         import numpy as np
-        import pandas as pd
         if shp == None:
             shp = self.shp
-        threshold = self.opt['check_tol']
-        dim = len(np.array(X).shape)
+        dim = len(np.array(x).shape)
 
-        if dim == 1:
-            X = [X]
-        
-        ss = shp['alpha_spreadsheet']
-        P = shp['P']
-        out = []
-        for x in X:
-            # First, filter based on general location to find relevant triangles
-            boolx = (ss[['p1x', 'p2x', 'p3x']] >= x[0]).astype('int')
-            boolx['sumx'] = boolx.sum(axis = 1)
-            booly = (ss[['p1y', 'p2y', 'p3y']] >= x[1]).astype('int')
-            booly['sumy'] = booly.sum(axis = 1)
-
-            bools = pd.concat([boolx, booly], axis = 1)
-            bools = bools[bools['sumx'] > 0]
-            bools = bools[bools['sumx'] < 3]
-            bools = bools[bools['sumy'] > 0]
-            bools = bools[bools['sumy'] < 3]
-            filtered_tri = ss.loc[bools.index]
-
-            tri = filtered_tri[['p1', 'p2', 'p3']].to_numpy()
-            coords = P[tri]
-
-            # Do point in triangle check using Barycentric coordinates - area
-            X1 = coords[:, 0, 0]
-            X2 = coords[:, 1, 0]
-            X3 = coords[:, 2, 0]
-            Y1 = coords[:, 0, 1]
-            Y2 = coords[:, 1, 1]
-            Y3 = coords[:, 2, 1]
-            tri_area = 0.5*np.abs((X2 - X1)*(Y3 - Y1) - (X3 - X1)*(Y2 - Y1))
-            area1 = 0.5*np.abs((X1 - x[0])*(Y2 - x[1]) - (X2 - x[0])*(Y1 - x[1]))
-            area2 = 0.5*np.abs((X2 - x[0])*(Y3 - x[1]) - (X3 - x[0])*(Y2 - x[1]))
-            area3 = 0.5*np.abs((X3 - x[0])*(Y1 - x[1]) - (X1 - x[0])*(Y3 - x[1]))
-            sum_area = area1 + area2 + area3
-
-            filtered_tri['area1'] = area1
-            filtered_tri['area2'] = area2
-            filtered_tri['area3'] = area3
-            filtered_tri['sum_area'] = sum_area
-            filtered_tri['tri_area'] = tri_area
-            filtered_tri['diff'] = filtered_tri['sum_area'] - filtered_tri['tri_area']
-            filtered_tri['equality'] = filtered_tri['diff'] <= threshold
-            inflag = filtered_tri['equality'].sum()
-            if inflag == 0:
-                out.append(False)
+        no_x = np.array(x).shape[0]
+        if dim == 2:
+            no_splits = self.opt['no_splits']
+            if no_x < no_splits:
+                no_splits = int(no_x/2)
+                x_list = np.array_split(x, no_splits)
             else:
-                out.append(True)
+                x_list = np.array_split(x, no_splits)
+        else:
+            x_list = [np.array(x)]
+
+        # Find which triangle the point lies in
+        P = shp['P']
+        simps = shp['simplices']
+
+        res_list = []
+        bool_list = []
+        for X in x_list:
+            # Convert all vertices to Barycentric coordinates wrt v0
+            v0 = P[simps[:, 0],:]
+            v1 = P[simps[:, 1],:] - v0
+            v2 = P[simps[:, 2],:] - v0
+
+            # Compute transformation matrix mat
+            n_tri = len(simps)
+            v1r = v1.T.reshape((2, 1, n_tri))
+            v2r = v2.T.reshape((2, 1, n_tri))
+            mat = np.concatenate((v1r, v2r), axis = 1)
+
+            # Get inverse of transformation matrix for each triangle
+            inv_mat = np.linalg.inv(mat.T).T
+
+            # Assemble vectors for vectorised calculation wrt length of X
+            if X.size == 2:
+                X = X.reshape((1,2))
+            n_X = X.shape[0]
+            v0p = np.repeat(v0[:,:,np.newaxis], n_X, axis = 2)
+
+            # Transform X based on the origin of each local tetrahedral coordinate system
+            transX = np.einsum('imk,kmj->kij', inv_mat, X.T - v0p)
+            
+            # Perform point check:
+            #     All transformed coordinates has to be between 0 and 1
+            #     and the sum of the coordinates is less than or equal to 1
+            val = np.all(transX >=0, axis = 1) & np.all(transX <= 1, axis = 1) & (np.sum(transX, axis = 1) <= 1)
+            id_tet, id_X = np.nonzero(val) # get indices of satisfied conditions
+            res = -np.ones(n_X, dtype = id_tet.dtype) # setup results array
+                                                        # assuming -1 initially for all entries
+            res[id_X] = id_tet # if the point lies inside, then replace the -1 values with id_tet
+            
+            # Recording
+            res_list.append(res)
+            bool_list.append(res != -1)
+        res = np.concatenate(res_list)
+        bool_res = np.concatenate(bool_list)
 
         if dim == 1:
-            out = out[0]
-        return out
+            return bool_res[0]
+        return bool_res
     
     def inside3D(self, x, shp = None):
         """
+        Point in tetrahedron checks based on Barycentric coordinates vectorised
+        Brute force check on all simplices in shp
+        Splits option included to handle memory limitations
         Returns False if x is not in self.shp, True otherwise (3D)
         x: list of [x, y, z], or [[x1, y1, z1], [x2, y2, z2], ...]
         """
@@ -980,59 +1043,62 @@ class DSI():
             no_splits = self.opt['no_splits']
             if no_x < no_splits:
                 no_splits = int(no_x/2)
-            x_list = np.array_split(x, no_splits)
+                x_list = np.array_split(x, no_splits)
+            else:
+                x_list = np.array_split(x, no_splits)
         else:
-            x_list = [x]
+            x_list = [np.array(x)]
 
         # Find which tetrahedron the point lies in
-        node_coordinates = shp['P']
-        node_ids = shp['simplices']
+        P = shp['P']
+        simps = shp['simplices']
 
         res_list = []
-        for x_s in x_list:
-            p = np.array(x_s)
+        bool_list = []
+        for X in x_list:
+            # Convert all vertices to Barycentric coordinates wrt v0
+            v0 = P[simps[:, 0],:]
+            v1 = P[simps[:, 1],:] - v0
+            v2 = P[simps[:, 2],:] - v0
+            v3 = P[simps[:, 3],:] - v0
 
-            ori = node_coordinates[node_ids[:, 0],:]
-            v1 = node_coordinates[node_ids[:, 1],:] - ori
-            v2 = node_coordinates[node_ids[:, 2],:] - ori
-            v3 = node_coordinates[node_ids[:, 3],:] - ori
-            n_tet = len(node_ids)
+            # Compute transformation matrix mat
+            n_tet = len(simps)
             v1r = v1.T.reshape((3, 1, n_tet))
             v2r = v2.T.reshape((3, 1, n_tet))
             v3r = v3.T.reshape((3, 1, n_tet))
-            mat = np.concatenate((v1r, v2r, v3r), axis=1)
+            mat = np.concatenate((v1r, v2r, v3r), axis = 1)
+
+            # Get inverse of transformation matrix for each tetrahedron
             inv_mat = np.linalg.inv(mat.T).T
-            if p.size == 3:
-                p = p.reshape((1,3))
-            n_p = p.shape[0]
-            orir = np.repeat(ori[:,:,np.newaxis], n_p, axis=2)
-            newp = np.einsum('imk,kmj->kij',inv_mat,p.T-orir)
-            val = np.all(newp>=0, axis=1) & np.all(newp <=1, axis=1) & (np.sum(newp, axis=1)<=1)
-            id_tet, id_p = np.nonzero(val)
-            res = -np.ones(n_p, dtype=id_tet.dtype) # Sentinel value
-            res[id_p] = id_tet
+
+            # Assemble vectors for vectorised calculation wrt length of X
+            if X.size == 3:
+                X = X.reshape((1, 3))
+            n_X = X.shape[0]
+            v0p = np.repeat(v0[:,:,np.newaxis], n_X, axis = 2)
+
+            # Transform X based on the origin of each local tetrahedral coordinate system
+            transX = np.einsum('imk,kmj->kij', inv_mat, X.T - v0p)
+            
+            # Perform point check:
+            #     All transformed coordinates has to be between 0 and 1
+            #     and the sum of the coordinates is less than or equal to 1
+            val = np.all(transX >=0, axis = 1) & np.all(transX <= 1, axis = 1) & (np.sum(transX, axis = 1) <= 1)
+            id_tet, id_X = np.nonzero(val) # get indices of satisfied conditions
+            res = -np.ones(n_X, dtype = id_tet.dtype) # setup results array
+                                                       # assuming -1 initially for all entries
+            res[id_X] = id_tet # if the point lies inside, then replace the -1 values with id_tet
+            
+            # Recording
             res_list.append(res)
+            bool_list.append(res != -1)
         res = np.concatenate(res_list)
+        bool_res = np.concatenate(bool_list)
 
         if dim == 1:
-            x = [x]
-        # return res
-        out = []
-        for i, r in enumerate(res):
-            V = shp['P'][shp['simplices'][r]]
-            p = x[i]
-            # Find the transform matrix from orthogonal to tetrahedron system
-            v1 = V[1]-V[0] ; v2 = V[2]-V[0] ; v3 = V[3]-V[0]
-            mat = np.array((v1,v2,v3)).T
-            # mat is 3x3 here
-            M1 = np.linalg.inv(mat)
-            # apply the transform to P (v1 is the origin)
-            newp = M1.dot(p - V[0])
-            # perform test
-            out.append(np.all(newp>=0) and np.all(newp <=1) and np.sum(newp)<=1)
-        if dim == 1:
-            out = out[0]
-        return out
+            return bool_res[0]
+        return bool_res
 
     def check_point(self, x):
         """
@@ -1242,6 +1308,7 @@ class DSI():
         # DSI results
         f.write(f'\n# -------------------------- RESULTS -------------------------- #\n')
         f.write(f'Design space size: {rp["space_size"]:10f}\n')
+        f.write(f'Number of regions: {rp["no_reg"]:10d}\n')
         f.write(f'Number of samples in DSp: {self.sat.shape[0]}\n\n')
         f.write(f'Average {rp["hmv"]["name"]}:    {rp["hmv"]["mean"]:10}\n')
         f.write(f'DS Maximum {rp["hmv"]["name"]}: {rp["hmv"]["max"]:10}\n')
