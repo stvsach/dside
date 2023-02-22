@@ -849,11 +849,11 @@ class DSI():
 
     def categorise3D(self, ws, cur_idx, reg):
         """
-        Recursive function to categorise triangles into regions
+        Breadth-first queue function to categorise triangles into regions
         ws: worksheet is a pandas dataframe containing all info
         cur_idx: current index in ws of the tri being checked (int)
         reg: region number (int)
-        returns nothing, mutates the original ws dataframe
+        returns next index to be put in queue and mutates the original ws dataframe
         """
         import pandas as pd
         ws.loc[cur_idx, 'visit'] = True # set it to be visited
@@ -877,27 +877,14 @@ class DSI():
                         w_s[w_s['p2'] == current_pair3], 
                         w_s[w_s['p3'] == current_pair3]])[['p1', 'p2', 'p3']]
 
+        next_in_queue = []
         if v1.shape[0] != 0:
-            ws.loc[v1.index[0], 'visit'] = True # set it to be visited
-            ws.loc[v1.index[0], 'region'] = reg # categorise to region reg
-            self.categorise3D(ws, v1.index[0], reg)
-        else:
-            pass
-
+            next_in_queue.append(v1.index[0])
         if v2.shape[0] != 0:
-            ws.loc[v2.index[0], 'visit'] = True # set it to be visited
-            ws.loc[v2.index[0], 'region'] = reg # categorise to region reg
-            self.categorise3D(ws, v2.index[0], reg)
-        else:
-            pass
-
+            next_in_queue.append(v2.index[0])
         if v3.shape[0] != 0:
-            ws.loc[v3.index[0], 'visit'] = True # set it to be visited
-            ws.loc[v3.index[0], 'region'] = reg # categorise to region reg
-            self.categorise3D(ws, v3.index[0], reg)
-        else:
-            pass
-        return None
+            next_in_queue.append(v3.index[0])
+        return next_in_queue
 
     def classify_regions3D(self, shp = None):
         """
@@ -913,7 +900,7 @@ class DSI():
         P = shp['P']
 
         # ----- Identification of Regions ----- #
-        # Implemented 3D breadth-first search with recursive categorisation
+        # Implemented 3D breadth-first queue search categorisation
         sorted_tri = edges[edges[:, 0].argsort()]
         triComb = np.array([(0, 1), (0, 2), (1, 2)]) # comb to separate tri to lines
 
@@ -934,7 +921,24 @@ class DSI():
 
             # find a point which have not been visited yet
             cur_idx = ws[ws['visit'] == False].index[0]
-            self.categorise3D(ws, cur_idx, reg)
+            history = []          # reset history
+            queue = []            # reset the queue
+            queue.append(cur_idx) # add the point into the queue
+            
+            # start queue for region reg
+            while len(queue) != 0:
+                cur_idx = queue.pop(0)
+                history.append(cur_idx)
+                next_in_queue = self.categorise3D(ws, cur_idx, reg)
+
+                # Add next_in_queue into the queue and check for dupes
+                # Also check if it has been covered in history
+                queue += next_in_queue
+                order = np.unique(queue, return_index=True)[1]
+                queue = [queue[i] for i in sorted(order)]
+                for i, j in enumerate(queue):
+                    if j in history:
+                        queue.pop(i)
 
         # Bounds based on regions
         ws['region'].astype('int')
