@@ -30,5 +30,5 @@ setup(
     install_requires=['numpy',
                       'matplotlib',
                       'pandas',
-                      'shapely']              # Install other dependencies if any
+                     ]              # Install other dependencies if any
 )
