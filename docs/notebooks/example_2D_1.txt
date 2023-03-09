@@ -3,8 +3,8 @@ Dataset name: example_2D_1
 
 No of samples: 1024
 Variables/parameters varied: 
-MV1
-MV2
+DI1
+DI2
 
 Constraints used: 
 KPI1         Lower bound:        -50   Upper bound:      1e+20

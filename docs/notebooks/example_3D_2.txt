@@ -3,9 +3,9 @@ Dataset name: example_3D_2
 
 No of samples: 1024
 Variables/parameters varied: 
-MV1
-MV2
-MV3
+DI1
+DI2
+DI3
 
 Constraints used: 
 KPI1         Lower bound:          0   Upper bound:          8
@@ -30,9 +30,9 @@ Detailed minimum point:
 
 # ------------------------------ Acceptable Operating Region 001 ------------------------------ #
 AOR point: 
-MV1:   0.400000 +-   0.273658 Range: 0.126342 - 0.673658 (0.5473165512084961)
-MV2:   0.400000 +-   0.273658 Range: 0.126342 - 0.673658 (0.5473165512084961)
-MV3:   0.500000 +-   0.273658 Range: 0.226342 - 0.773658 (0.5473165512084961)
+DI1:   0.400000 +-   0.273658 Range: 0.126342 - 0.673658 (0.5473165512084961)
+DI2:   0.400000 +-   0.273658 Range: 0.126342 - 0.673658 (0.5473165512084961)
+DI3:   0.500000 +-   0.273658 Range: 0.226342 - 0.773658 (0.5473165512084961)
 AOR size:   0.163952
 
 Number of samples inside AOR:1024
