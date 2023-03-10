@@ -419,12 +419,12 @@ class DSI():
                         plt.plot(*zip(*shp['reg_bounds_val'][i]),\
                             linewidth = opt['dspwidth'], linestyle = opt['dspstyle'],\
                             color = opt['dspcolor'], label = opt['dsplabel'],\
-                            zorder = opt['dspzorder'])
+                            zorder = opt['dspzorder'], solid_capstyle = 'round')
                     else:
                         plt.plot(*zip(*shp['reg_bounds_val'][i]),\
                             linewidth = opt['dspwidth'], linestyle = opt['dspstyle'],\
                             color = opt['dspcolor'],\
-                            zorder = opt['dspzorder'])
+                            zorder = opt['dspzorder'], solid_capstyle = 'round')
 
             if dim == 3:
                 for i in range(len(shp['reg_bounds'])):
