@@ -8,13 +8,13 @@ Design space identification tool for plotting and analysing design spaces (2D an
 
 
 ## Installation
-Currently, dside requires pandas, numpy, matplotlib, and shapely. dside can be installed with the following commands.
+Currently, dside requires pandas, numpy, and matplotlib. dside can be installed with the following commands.
 ```bash
 pip install dside
 ```
 
 ## Quick Overview
-Use this tool to visualize 2D and 3D design spaces, obtain mathematical representations of the design space boundary in the form of alpha shapes, calculate the size of the design space, and investigate nominal operating points in terms of performance and flexibility (acceptable ranges).
+Use this tool to visualize 2D and 3D design spaces, obtain mathematical representations of the design space boundary in the form of alpha shapes, calculate the size of the design space, and investigate nominal operating points in terms of performance and flexibility (acceptable ranges). Identification of multi-region spaces is possible.
 
 ```
 import dside
