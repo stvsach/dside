@@ -313,7 +313,10 @@ class DSI():
         sat = self.sat
         vio = self.vio
         opt = self.opt
-        labelpad = opt['labelpad']
+        try:
+            labelpad = opt['labelpad']
+        except KeyError:
+            labelpad = [8]*3
         if type(labelpad) == int:
             labelpad = [labelpad]
         if len(labelpad) == 1:
@@ -477,7 +480,7 @@ class DSI():
         plt.xlabel(opt['xlabel'], labelpad = labelpad[0])
         plt.ylabel(opt['ylabel'], labelpad = labelpad[1])
         if dim == 3:
-            ax.set_zlabel(opt['zlabel'], labelpad = labelpad[3])
+            ax.set_zlabel(opt['zlabel'], labelpad = labelpad[2])
             ax.view_init(elev = opt['elev'], azim = opt['azim'])
         if (opt['hmv'] == 'None') or (opt['hidehmv'] == True):
             plt.legend(loc = opt['legloc'],\
