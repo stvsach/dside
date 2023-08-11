@@ -21,6 +21,70 @@ def get_at_time(df, t, time_label = 'Time'):
             else:
                 dft[i] = sliced.iloc[0]
     return pd.DataFrame(dft).T
+    
+def plot_DSp(shp, opt = {}, ax = None):
+    """
+    Takes in shp and plots the design space just like in normal DSI entity
+    """
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    import matplotlib
+    dim = shp['P'].shape[1]
+
+    # ---------------------------- Default options ---------------------------- #
+        # Default options
+    default_opt = {
+        # ----- Plot Format ----- #
+        'czorder': False,    # computed_zorder for 3D plots settings
+        # ----- Design Space Parameters ----- #
+        'dsplabel': 'DSp',   # Label of surface/boundary
+        'dspcolor': 'black', # Color of the surface/boundary (both)
+        'dspwidth': 4,       # Thickness of the boundary (2D)
+        'dspstyle': '-',     # Line style of the boundary (2D)
+        'dspalpha': 0.2,     # Transparency of surface/boundary (3D)
+        'dspzorder': 20,     # To make sure it is plotted ontop of the samples
+    }
+    default_opt.update(opt)
+    opt = default_opt
+
+    if ax == None:
+        if dim == 2:   # 2D plot
+            fig, ax = plt.subplots()
+        elif dim == 3: # 3D plot
+            fig = plt.figure()
+            ax = fig.add_subplot(projection = '3d', computed_zorder = opt['czorder'])
+        elif dim > 3:
+            print('Dimension of vnames is larger than 3.')
+    if dim == 2:
+        for i in range(len(shp['reg_bounds_val'])):
+            if i == 0:
+                plt.plot(*zip(*shp['reg_bounds_val'][i]),\
+                    linewidth = opt['dspwidth'], linestyle = opt['dspstyle'],\
+                    color = opt['dspcolor'], label = opt['dsplabel'],\
+                    zorder = opt['dspzorder'], solid_capstyle = 'round')
+            else:
+                plt.plot(*zip(*shp['reg_bounds_val'][i]),\
+                    linewidth = opt['dspwidth'], linestyle = opt['dspstyle'],\
+                    color = opt['dspcolor'],\
+                    zorder = opt['dspzorder'], solid_capstyle = 'round')
+
+    if dim == 3:
+        for i in range(len(shp['reg_bounds'])):
+            if i == 0:
+                surf = ax.plot_trisurf(*zip(*shp['P']), triangles = shp['reg_bounds'][i], \
+                    color = opt['dspcolor'],\
+                    alpha = opt['dspalpha'], label = opt['dsplabel'],\
+                    zorder = opt['dspzorder'])
+                surf._facecolors2d=surf._facecolor3d
+                surf._edgecolors2d=surf._edgecolor3d
+            else:
+                surf = ax.plot_trisurf(*zip(*shp['P']), triangles = shp['reg_bounds'][i], \
+                    color = opt['dspcolor'],\
+                    alpha = opt['dspalpha'],\
+                    zorder = opt['dspzorder'])
+                surf._facecolors2d=surf._facecolor3d
+                surf._edgecolors2d=surf._edgecolor3d
+    return ax
 
 def Sobol_sequence(lbd, ubd, power_no):
     """
@@ -217,6 +281,7 @@ class DSI():
         self.bw_template = {'alpha': 1, 'satcolor': 'gray', 'viocolor': 'black', \
             'satfill': 'gray', 'viofill': 'black', 'cmap': 'gray80',
                            'satmarker': 'o', 'viomarker': 'o'}
+        self.normP = None
         return None
     
     def reset(self):
@@ -225,6 +290,36 @@ class DSI():
         """
         self.opt = self.default_opt.copy()
         return None
+        
+    def mm_norm(self, arr, normP):
+        """
+        Min max normalisation
+        """ 
+        arrmin = normP[0]
+        arrmax = normP[1]
+        return (arr - arrmin)/(arrmax - arrmin)
+
+    def mm_rev(self, norm, normP):
+        """
+        Reverse min max normalisation
+        """
+        arrmin = normP[0]
+        arrmax = normP[1]
+        return norm*(arrmax - arrmin) + arrmin
+
+    def mm_size_norm(self, size, normP):
+        """
+        Min max normalisation of space size
+        """
+        ss_norm = size/np.product(normP[1] - normP[0])
+        return ss_norm
+
+    def mm_size_rev(self, ss_norm, normP):
+        """
+        Reverse min max normalisation of space size
+        """
+        size = ss_norm*np.product(normP[1] - normP[0])
+        return size
         
     def screen(self, constraints):
         """
@@ -310,6 +405,161 @@ class DSI():
         self.opt.update(opt)
         
         # ---------------------------- External definitions ---------------------------- #
+        opt = self.opt
+        try:
+            labelpad = opt['labelpad']
+        except KeyError:
+            labelpad = [8]*3
+        if type(labelpad) == int:
+            labelpad = [labelpad]
+        if len(labelpad) == 1:
+            labelpad *= 3
+        plt.rcParams.update({'font.size': opt['font_size']})
+            
+        # ------------------------------ Plotting ------------------------------ #        
+        # Check plot dimension
+        dim = len(vnames)
+        if dim == 2:   # 2D plot
+            fig, ax = plt.subplots(figsize = opt['fs'])
+        elif dim == 3: # 3D plot
+            fig = plt.figure()
+            ax = fig.add_subplot(projection = '3d', computed_zorder = opt['czorder'])
+        elif dim > 3:
+            print('Dimension of vnames is larger than 3.')
+        self.ax = ax
+        self.fig = fig
+        
+        # Scatter plot
+        ax = self.scatter(vnames = None, opt = opt, ax = ax)
+        
+        # ----- Design space surface/boundary ----- #
+        if opt['hidedsp'] == False:
+            if self.space_size == None:
+                self.find_DSp(vnames, opt = opt)
+            shp = self.shp
+            ax = self.plot_DSp(shp, opt = opt, ax = ax)
+        
+        # Limits for axes
+        if opt['axeslimdf'] != 'best':
+            if opt['axeslimdf'] == 'sat':
+                axesdf = self.sat.copy()
+            elif opt['axeslimdf'] == 'vio':
+                axesdf = self.vio.copy()
+            elif opt['axeslimdf'] == 'df':
+                axesdf = self.df.copy()
+            vmax = axesdf[vnames].max().to_numpy()
+            vmin = axesdf[vnames].min().to_numpy()
+            vrange = vmax - vmin
+            limfactor = opt['limfactor']
+            if dim == 2:
+                plt.xlim([vmin[0] - limfactor*vrange[0], vmax[0] + limfactor*vrange[0]])
+                plt.ylim([vmin[1] - limfactor*vrange[1], vmax[1] + limfactor*vrange[1]])
+            if dim == 3:
+                ax.set_xlim([vmin[0] - limfactor*vrange[0],\
+                    vmax[0] + limfactor*vrange[0]])
+                ax.set_ylim([vmin[1] - limfactor*vrange[1],\
+                    vmax[1] + limfactor*vrange[1]])
+                ax.set_zlim([vmin[2] - limfactor*vrange[2],\
+                    vmax[2] + limfactor*vrange[2]])
+        
+        
+        # Labels
+        plt.xlabel(opt['xlabel'], labelpad = labelpad[0])
+        plt.ylabel(opt['ylabel'], labelpad = labelpad[1])
+        if dim == 3:
+            ax.set_zlabel(opt['zlabel'], labelpad = labelpad[2])
+            ax.view_init(elev = opt['elev'], azim = opt['azim'])
+        if (opt['hmv'] == 'None') or (opt['hidehmv'] == True):
+            plt.legend(loc = opt['legloc'],\
+                framealpha = opt['framealpha']).set_zorder(opt['legendzorder'])
+        
+        # Saving
+        plt.tight_layout()
+        self.ax = ax
+        self.fig = fig
+        if opt['save_flag']:
+            plt.savefig(opt['save_name'], dpi = opt['save_dpi'])
+        return None
+    
+    def plot_DSp(self, shp = 'default', opt = {}, ax = None):
+        import pandas as pd
+        import matplotlib.pyplot as plt
+        import matplotlib
+        if shp == 'default':
+            shp = self.shp
+        dim = shp['P'].shape[1]
+
+        # ---------------------------- Internal definitions ---------------------------- #
+        self.opt.update(opt)
+        if self.opt['bw']:
+            self.opt.update(self.bw_template)
+        self.opt.update(opt)
+
+        # ---------------------------- External definitions ---------------------------- #
+        opt = self.opt
+
+        if ax == None:
+            if dim == 2:   # 2D plot
+                fig, ax = plt.subplots(figsize = opt['fs'])
+            elif dim == 3: # 3D plot
+                fig = plt.figure()
+                ax = fig.add_subplot(projection = '3d', computed_zorder = opt['czorder'])
+            elif dim > 3:
+                print('Dimension of vnames is larger than 3.')
+            self.ax = ax
+            self.fig = fig
+        if dim == 2:
+            for i in range(len(shp['reg_bounds_val'])):
+                if i == 0:
+                    plt.plot(*zip(*shp['reg_bounds_val'][i]),\
+                        linewidth = opt['dspwidth'], linestyle = opt['dspstyle'],\
+                        color = opt['dspcolor'], label = opt['dsplabel'],\
+                        zorder = opt['dspzorder'], solid_capstyle = 'round')
+                else:
+                    plt.plot(*zip(*shp['reg_bounds_val'][i]),\
+                        linewidth = opt['dspwidth'], linestyle = opt['dspstyle'],\
+                        color = opt['dspcolor'],\
+                        zorder = opt['dspzorder'], solid_capstyle = 'round')
+
+        if dim == 3:
+            for i in range(len(shp['reg_bounds'])):
+                if i == 0:
+                    surf = ax.plot_trisurf(*zip(*shp['P']), triangles = shp['reg_bounds'][i], \
+                        color = opt['dspcolor'],\
+                        alpha = opt['dspalpha'], label = opt['dsplabel'],\
+                        zorder = opt['dspzorder'])
+                    surf._facecolors2d=surf._facecolor3d
+                    surf._edgecolors2d=surf._edgecolor3d
+                else:
+                    surf = ax.plot_trisurf(*zip(*shp['P']), triangles = shp['reg_bounds'][i], \
+                        color = opt['dspcolor'],\
+                        alpha = opt['dspalpha'],\
+                        zorder = opt['dspzorder'])
+                    surf._facecolors2d=surf._facecolor3d
+                    surf._edgecolors2d=surf._edgecolor3d
+        return ax
+        
+    def scatter(self, vnames = None, opt = {}, ax = None):
+        """
+        Scatter plot of either 2D or 3D based on satisfied and violated points.
+        vnames: ['varname1', 'varname2', 'varname3']
+        Plotting options available by passing opt 
+        which is a dictionary to update the default self.opt.
+        """
+        import pandas as pd
+        import matplotlib.pyplot as plt
+        import matplotlib
+        # ---------------------------- Internal definitions ---------------------------- #
+        if vnames == None:
+            vnames = self.vnames
+        else:
+            self.vnames = vnames
+        self.opt.update(opt)
+        if self.opt['bw']:
+            self.opt.update(self.bw_template)
+        self.opt.update(opt)
+        
+        # ---------------------------- External definitions ---------------------------- #
         sat = self.sat
         vio = self.vio
         opt = self.opt
@@ -322,7 +572,29 @@ class DSI():
         if len(labelpad) == 1:
             labelpad *= 3
         plt.rcParams.update({'font.size': opt['font_size']})
-        
+
+        # ------------------------- Initialize figure and axes ------------------------- #
+        # Check size of each dataframe
+        nosat_flag = False
+        novio_flag = False
+        if sat.size == 0:
+            nosat_flag = True
+            print('No samples satisfied all constraints.')
+        if vio.size == 0:
+            novio_flag = True
+            print('All samples satisfied all constraints.')
+        if ax == None:
+            # Check plot dimension
+            dim = len(vnames)
+            if dim == 2:   # 2D plot
+                fig, ax = plt.subplots(figsize = opt['fs'])
+            elif dim == 3: # 3D plot
+                fig = plt.figure()
+                ax = fig.add_subplot(projection = '3d', computed_zorder = opt['czorder'])
+            elif dim > 3:
+                print('Dimension of vnames is larger than 3.')
+            self.ax = ax
+            self.fig = fig
         # ----------------------------- Heat map Variable ----------------------------- #
         hmv_R = {'name': opt['hmv'], 'mean': '-', 'max': '-', 'max_sample': '-', \
             'min': '-',  'min_sample': '-'}
@@ -364,31 +636,7 @@ class DSI():
             hmv_R['min']  = sat[opt['hmv']].min()
             hmv_R['min_sample'] = sat[sat[opt['hmv']] == hmv_R['min']]
         self.report.update({'hmv': hmv_R})
-            
-        # ------------------------------ Plotting ------------------------------ #
-        # Check size of each dataframe
-        nosat_flag = False
-        novio_flag = False
-        if sat.size == 0:
-            nosat_flag = True
-            print('No samples satisfied all constraints.')
-        if vio.size == 0:
-            novio_flag = True
-            print('All samples satisfied all constraints.')
-        
-        # Check plot dimension
-        dim = len(vnames)
-        if dim == 2:   # 2D plot
-            fig, ax = plt.subplots(figsize = opt['fs'])
-        elif dim == 3: # 3D plot
-            fig = plt.figure()
-            ax = fig.add_subplot(projection = '3d', computed_zorder = opt['czorder'])
-        elif dim > 3:
-            print('Dimension of vnames is larger than 3.')
-        self.ax = ax
-        self.fig = fig
-        
-        # Scatter plot        
+
         if opt['hidesat'] == False:
             if nosat_flag == False:
                 if (opt['hmv'] == 'None') or (opt['hidehmv'] == True):
@@ -416,82 +664,8 @@ class DSI():
                     ax.scatter(*zip(*vio[vnames].to_numpy()), s = opt['viomarkersize'], marker = opt['viomarker'],\
                         label = opt['violabel'], color = cmap(norm(vio[opt['hmv']])),\
                         alpha = opt['alpha'], zorder = opt['viozorder'])
-        
-        # ----- Design space surface/boundary ----- #
-        if opt['hidedsp'] == False:
-            if self.space_size == None:
-                self.find_DSp(vnames, opt = opt)
-            shp = self.shp
-            if dim == 2:
-                for i in range(len(shp['reg_bounds_val'])):
-                    if i == 0:
-                        plt.plot(*zip(*shp['reg_bounds_val'][i]),\
-                            linewidth = opt['dspwidth'], linestyle = opt['dspstyle'],\
-                            color = opt['dspcolor'], label = opt['dsplabel'],\
-                            zorder = opt['dspzorder'], solid_capstyle = 'round')
-                    else:
-                        plt.plot(*zip(*shp['reg_bounds_val'][i]),\
-                            linewidth = opt['dspwidth'], linestyle = opt['dspstyle'],\
-                            color = opt['dspcolor'],\
-                            zorder = opt['dspzorder'], solid_capstyle = 'round')
+        return ax
 
-            if dim == 3:
-                for i in range(len(shp['reg_bounds'])):
-                    if i == 0:
-                        surf = ax.plot_trisurf(*zip(*shp['P']), triangles = shp['reg_bounds'][i], \
-                            color = opt['dspcolor'],\
-                            alpha = opt['dspalpha'], label = opt['dsplabel'],\
-                            zorder = opt['dspzorder'])
-                        surf._facecolors2d=surf._facecolor3d
-                        surf._edgecolors2d=surf._edgecolor3d
-                    else:
-                        surf = ax.plot_trisurf(*zip(*shp['P']), triangles = shp['reg_bounds'][i], \
-                            color = opt['dspcolor'],\
-                            alpha = opt['dspalpha'],\
-                            zorder = opt['dspzorder'])
-                        surf._facecolors2d=surf._facecolor3d
-                        surf._edgecolors2d=surf._edgecolor3d
-        
-        # Limits for axes
-        if opt['axeslimdf'] != 'best':
-            if opt['axeslimdf'] == 'sat':
-                axesdf = self.sat.copy()
-            elif opt['axeslimdf'] == 'vio':
-                axesdf = self.vio.copy()
-            elif opt['axeslimdf'] == 'df':
-                axesdf = self.df.copy()
-            vmax = axesdf[vnames].max().to_numpy()
-            vmin = axesdf[vnames].min().to_numpy()
-            vrange = vmax - vmin
-            limfactor = opt['limfactor']
-            if dim == 2:
-                plt.xlim([vmin[0] - limfactor*vrange[0], vmax[0] + limfactor*vrange[0]])
-                plt.ylim([vmin[1] - limfactor*vrange[1], vmax[1] + limfactor*vrange[1]])
-            if dim == 3:
-                ax.set_xlim([vmin[0] - limfactor*vrange[0],\
-                    vmax[0] + limfactor*vrange[0]])
-                ax.set_ylim([vmin[1] - limfactor*vrange[1],\
-                    vmax[1] + limfactor*vrange[1]])
-                ax.set_zlim([vmin[2] - limfactor*vrange[2],\
-                    vmax[2] + limfactor*vrange[2]])
-        
-        
-        # Labels
-        plt.xlabel(opt['xlabel'], labelpad = labelpad[0])
-        plt.ylabel(opt['ylabel'], labelpad = labelpad[1])
-        if dim == 3:
-            ax.set_zlabel(opt['zlabel'], labelpad = labelpad[2])
-            ax.view_init(elev = opt['elev'], azim = opt['azim'])
-        if (opt['hmv'] == 'None') or (opt['hidehmv'] == True):
-            plt.legend(loc = opt['legloc'],\
-                framealpha = opt['framealpha']).set_zorder(opt['legendzorder'])
-        
-        # Saving
-        plt.tight_layout()
-        if opt['save_flag']:
-            plt.savefig(opt['save_name'], dpi = opt['save_dpi'])
-        return None
-    
     def find_DSp(self, vnames = None, opt = {}):
         """
         Create a hull using alphashape
@@ -505,15 +679,27 @@ class DSI():
         import pandas as pd
         from time import time
         start_t = time()
-
-        sat = self.sat
+        
         if vnames == None:
             vnames = self.vnames
         else:
             self.vnames = vnames
+            
+        # Get normalization parameters (only used in calculations)
+        normP = self.normP
+        if normP == None:
+            df = self.df
+            normP = [df[vnames].min().to_numpy(), df[vnames].max().to_numpy()]
+            self.normP = normP
+        else:
+            pass
+
+        sat = self.sat
         points = sat[vnames].to_numpy(dtype='float')
+
         vio = self.vio
         vpoints = vio[vnames].to_numpy(dtype='float')
+        
         self.opt.update({'vnames': vnames})
         self.opt.update(opt) 
         print_flag = self.opt['printF']
@@ -639,6 +825,10 @@ class DSI():
         import numpy as np
         import pandas as pd
 
+        # Normalize points P
+        normP = self.normP
+        P = self.mm_norm(P, normP)
+
         spreadsheet = self.DTspreadsheet
         if type(spreadsheet) == type(None):
             # Get Delaunay triangulation of the points
@@ -680,11 +870,12 @@ class DSI():
         edges = pd.DataFrame(edges).drop_duplicates(keep = False).to_numpy() # get unique entries only
 
         shp = {
-            'P': P, 
+            'P': self.mm_rev(P, normP), 
             'simplices': simps, 
             'edges': edges, 
             'alpha': alpha,
             'alpha_spreadsheet': alpha_spreadsheet,
+            'normalized_P': P,
             }
         return shp
 
@@ -808,6 +999,10 @@ class DSI():
         import numpy as np
         import pandas as pd
 
+        # Normalize points P
+        normP = self.normP
+        P = self.mm_norm(P, normP)
+
         spreadsheet = self.DTspreadsheet
         if type(spreadsheet) == type(None):
             # Get Delaunay triangulation of the points
@@ -848,11 +1043,12 @@ class DSI():
         edges = pd.DataFrame(edges).drop_duplicates(keep = False).to_numpy() # get unique entries only
 
         shp = {
-            'P': P, 
+            'P': self.mm_rev(P, normP), 
             'simplices': simps, 
             'edges': edges, 
             'alpha': alpha,
             'alpha_spreadsheet': alpha_spreadsheet,
+            'normalized_P': P,
             }
         return shp
 
