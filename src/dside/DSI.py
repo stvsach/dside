@@ -311,6 +311,7 @@ class DSI():
         """
         Min max normalisation of space size
         """
+        import numpy as np
         ss_norm = size/np.product(normP[1] - normP[0])
         return ss_norm
 
@@ -318,6 +319,7 @@ class DSI():
         """
         Reverse min max normalisation of space size
         """
+        import numpy as np
         size = ss_norm*np.product(normP[1] - normP[0])
         return size
         
