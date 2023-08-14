@@ -432,7 +432,7 @@ class DSI():
         self.fig = fig
         
         # Scatter plot
-        ax = self.scatter(vnames = None, opt = opt, ax = ax)
+        ax, fig = self.scatter(vnames = None, opt = opt, ax = ax, fig = fig)
         
         # ----- Design space surface/boundary ----- #
         if opt['hidedsp'] == False:
@@ -541,7 +541,7 @@ class DSI():
                     surf._edgecolors2d=surf._edgecolor3d
         return ax
         
-    def scatter(self, vnames = None, opt = {}, ax = None):
+    def scatter(self, vnames = None, opt = {}, ax = None, fig = None):
         """
         Scatter plot of either 2D or 3D based on satisfied and violated points.
         vnames: ['varname1', 'varname2', 'varname3']
@@ -666,7 +666,7 @@ class DSI():
                     ax.scatter(*zip(*vio[vnames].to_numpy()), s = opt['viomarkersize'], marker = opt['viomarker'],\
                         label = opt['violabel'], color = cmap(norm(vio[opt['hmv']])),\
                         alpha = opt['alpha'], zorder = opt['viozorder'])
-        return ax
+        return ax, fig
 
     def find_DSp(self, vnames = None, opt = {}):
         """
