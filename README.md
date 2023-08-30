@@ -34,3 +34,21 @@ ds.send_output('output')
 
 ![image](https://raw.githubusercontent.com/stvsach/dside/main/Fig/2D.svg)
 ![image](https://raw.githubusercontent.com/stvsach/dside/main/Fig/3D.svg)
+
+## Citation
+
+Please cite the following <a href="https://doi.org/10.1016/j.cherd.2023.08.016" target="_blank">publication</a> if you are using dside for your own research.
+
+```text
+@article{sachio2023dsp,
+    title={A model-based approach towards accelerated process development: A case study on chromatography},
+    author = {Steven Sachio and Cleo Kontoravdi and Maria M. Papathanasiou},
+    journal = {Chemical Engineering Research and Design},
+    volume = {197},
+    pages = {800-820},
+    year = {2023},
+    issn = {0263-8762},
+    doi = {https://doi.org/10.1016/j.cherd.2023.08.016},
+    url = {https://www.sciencedirect.com/science/article/pii/S0263876223005166},
+}
+```
