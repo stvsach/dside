@@ -802,16 +802,21 @@ class DSI():
     
         if vpoints.shape[0] == 0:
             self.vindsp = None
+            self.report['no_vindsp'] = 0
         else:
             self.vindsp = vio[inside(vpoints, shp)]
+            self.report['no_vindsp'] = self.vindsp.shape[0]
         self.indsp = pd.concat([sat, self.vindsp]).reset_index()
         space_size = shp['size']
         self.shp = shp
         self.space_size = space_size
         self.bF = shp['simplices']
         self.P = shp['P']
+        self.report['no_sat'] = sat.shape[0]
+        self.report['no_vio'] = vio.shape[0]
         self.report['space_size'] = space_size
-        self.report['no_reg'] = self.shp['no_reg']
+        self.report['no_reg'] = shp['no_reg']
+        self.report['no_simps'] = shp['simplices'].shape[0]
         self.report['sol_flag'] = sol_flag
         # self.report['opt_log'] = opt_log
         
