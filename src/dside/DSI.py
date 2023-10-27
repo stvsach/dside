@@ -738,13 +738,19 @@ class DSI():
             lb = opt['lb']
             ub = opt['ub']
             maxiter = opt['maxiter']
+            maxvp = opt['maxvp']
+            if maxvp == 1:
+                maxvnum = 1e30
+            else:
+                maxvnum = maxvp*self.sat.shape[0]/(1 - maxvp)
             if print_flag:
                 print('Bisection search for alpha multiplier (radius)')
-                print(f'    tol: {tol:3.3e}  maxiter: {maxiter}')
-                print(f'    lb:  {lb:3.3e}  ub:      {ub:3.3e}')
-                print(f'____________________________________________________')
-                print(f'{"No iter":^10}|{"alpha multiplier":^20}|{"Violation Flag":^20}')
-                print(f'____________________________________________________')
+                print(f'    tol: {tol:3.2e}  maxiter: {maxiter}')
+                print(f'    lb:  {lb:3.2e}  ub:      {ub:3.2e}')
+                print(f'    maxvp: {maxvp:3.2e}  maxvnum: {maxvnum:.2f}')
+                print(f'{92*"_"}')
+                print(f'{"No iter":^10}|{"alpha multiplier":^20}|{"Violation Flag":^20}|{"Number vio inside":^20}|{"Bisection Gap":^20}')
+                print(f'{92*"_"}')
             # Bisection algorithm
             for i in range(maxiter):
                 mp = lb + (ub - lb)/2
@@ -756,7 +762,6 @@ class DSI():
                 r = inside(vpoints, shp)
                 flag = True in r
                 vnum = vio[r].shape[0]
-                maxvnum = opt['maxvp']*(self.sat.shape[0] + vnum)
                 if vnum <= maxvnum: # tolerance based
                     flag = False
                 else:
@@ -767,14 +772,15 @@ class DSI():
                     lb = mp
                     if ub - lb <= tol:
                         if print_flag:
-                            print(f'{i + 1:^10}|{mp:^20.3e}|{str(flag):^20}')
-                        sol_flag = f'[{i + 1}] Optimal amul: {mp:1.4e}   alpha: {a*mp:1.3e}\nTol: {tol:1.3e}   Bisection Gap: {ub - lb:1.3e}\nvnum: {vnum}   maxvnum: {maxvnum}'
+                            print(f'{i + 1:^10}|{mp:^20.3e}|{str(flag):^20}|{vnum:^20}|{ub - lb:^20.3e}')
+                        sol_flag = f'[{i + 1}] Optimal amul: {mp:1.4e}   alpha: {a*mp:1.3e}\nTol: {tol:1.3e}   Bisection Gap: {ub - lb:1.3e}\nvnum: {vnum}   maxvnum: {maxvnum:.2f}'
                         break
                 if print_flag:
-                    print(f'{i + 1:^10}|{mp:^20.3e}|{str(flag):^20}')
+                    print(f'{i + 1:^10}|{mp:^20.3e}|{str(flag):^20}|{vnum:^20}|{ub - lb:^20.3e}')
             if (i + 1) == maxiter:
                 sol_flag = f'Max iterations reached: {maxiter} iterations  amul: {mp:6f}'
         if print_flag:
+            print(f'{92*"_"}')
             print(sol_flag)
 
         # Calculate design space size and classify regions
@@ -819,6 +825,11 @@ class DSI():
         self.report['no_simps'] = shp['simplices'].shape[0]
         self.report['sol_flag'] = sol_flag
         # self.report['opt_log'] = opt_log
+        if print_flag:
+            print(f'{42*"="} Results {41*"="}')
+            print(f'{"No. satisfied points":<32}: {sat.shape[0]}\n{"No. violated points":<32}: {vio.shape[0]}\n{"No. violated points inside DSp":<32}: {self.report["no_vindsp"]}')
+            print(f'{"No. of regions":<32}: {shp["no_reg"]}\n{"No. of simplices":<32}: {shp["simplices"].shape[0]}')
+            print(f'{"Size of design space":<32}: {space_size:1.3e}')
         
         end_t = time()
         comp_t = end_t - start_t
@@ -853,7 +864,7 @@ class DSI():
             Bxo = Bx - Ax; Cxo = Cx - Ax # Axo = Ax - Ax; 
             Byo = By - Ay; Cyo = Cy - Ay # Ayo = Ay - Ay; 
 
-            Do = 2*(Bxo*Cyo - Byo*Cxo)
+            Do = (2*(Bxo*Cyo - Byo*Cxo)).clip(min = 1e-10) # denominator
             Uxo = (1/Do)*(Cyo*(Bxo**2 + Byo**2) - Byo*(Cxo**2 + Cyo**2))
             Uyo = (1/Do)*(Bxo*(Cxo**2 + Cyo**2) - Cxo*(Bxo**2 + Byo**2))
             R = np.sqrt(Uxo**2 + Uyo**2)          # radius of circumcircle
