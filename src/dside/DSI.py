@@ -273,7 +273,7 @@ class DSI():
             'extra_points': [], # Extra points to be used to design space identification
             'maxiter': 50,    # Maximum bisection iterations
             'tol': 0.001,     # Bisection tolerance (on the MV which is amul)
-            'lb': 0.001,      # Lower bound of initial bisection run
+            'lb': 1e-30,      # Lower bound of initial bisection run
             'ub': 5,          # Upper bound of initial bisection run
             'printF': True,   # If true, print iter details
             'maxvp': 0,       # Maximum allowed percentage of vio in DSp
