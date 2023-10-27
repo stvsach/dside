@@ -149,6 +149,7 @@ class DSI():
         from matplotlib.colors import ListedColormap
         
         # Set internal definition
+        df = df.copy()
         self.df = df
         self.report = {
             'nosam': df.shape[0], 'space_size': '-',
