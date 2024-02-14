@@ -313,7 +313,7 @@ class DSI():
         Min max normalisation of space size
         """
         import numpy as np
-        ss_norm = size/np.product(normP[1] - normP[0])
+        ss_norm = size/np.prod(normP[1] - normP[0])
         return ss_norm
 
     def mm_size_rev(self, ss_norm, normP):
@@ -321,7 +321,7 @@ class DSI():
         Reverse min max normalisation of space size
         """
         import numpy as np
-        size = ss_norm*np.product(normP[1] - normP[0])
+        size = ss_norm*np.prod(normP[1] - normP[0])
         return size
         
     def screen(self, constraints):
@@ -713,7 +713,7 @@ class DSI():
             self.extra_points = extra_points
         a = opt['a']
         if a == None:
-            a = np.product(self.df[vnames].max())
+            a = np.prod(self.df[vnames].max())
 
         dim = len(vnames)
         if dim == 2:
