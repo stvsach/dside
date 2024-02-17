@@ -1027,6 +1027,7 @@ class DSI():
             # Get Delaunay triangulation of the points
             tetra = Delaunay(P)
             simps = tetra.simplices
+            spreadsheet = pd.DataFrame(simps, columns = ['p1', 'p2', 'p3', 'p4'])
             tetraP = P[simps]
 
             # --- Calculating circumsphere radius and center (vectorised) --- #
@@ -1044,9 +1045,14 @@ class DSI():
             Uy = Dy/(2*A)
             Uz = Dz/(2*A)
             U = np.array([Ux, Uy, Uz]).T   # center of circumsphere
-            R = np.sqrt(Dx**2 + Dy**2 + Dz**2 - 4*A*C)/(2*np.abs(A)) # radius of circumsphere
+            # Implement tolerance to prevent negative values
+            sqrt_term = Dx**2 + Dy**2 + Dz**2 - 4*A*C
+            spreadsheet['sqrt_term'] = sqrt_term
+            sqrt_term[(sqrt_term < 0)*(sqrt_term > -1e20)] = 0
+            if sqrt_term[sqrt_term == 0].shape[0] > 0:
+                print('WARNING: Zero-volume tetrahedrons detected. These tetrahedrons will be ignored in point-in-polygon checks.')
+            R = np.sqrt(sqrt_term)/(2*np.abs(A)) # radius of circumsphere
             
-            spreadsheet = pd.DataFrame(simps, columns = ['p1', 'p2', 'p3', 'p4'])
             spreadsheet[['Ux', 'Uy', 'Uz']] = U
             spreadsheet['r'] = R
 
@@ -1062,9 +1068,9 @@ class DSI():
         edges = pd.DataFrame(edges).drop_duplicates(keep = False).to_numpy() # get unique entries only
 
         shp = {
-            'P': self.mm_rev(P, normP), 
-            'simplices': simps, 
-            'edges': edges, 
+            'P': self.mm_rev(P, normP),
+            'simplices': simps,
+            'edges': edges,
             'alpha': alpha,
             'alpha_spreadsheet': alpha_spreadsheet,
             'normalized_P': P,
@@ -1297,7 +1303,11 @@ class DSI():
             mat = np.concatenate((v1r, v2r, v3r), axis = 1)
 
             # Get inverse of transformation matrix for each tetrahedron
-            inv_mat = np.linalg.inv(mat.T).T
+            non_singular_index = np.linalg.det(mat.T) != 0
+            non_singular_mat = mat.T[non_singular_index]
+            # if sum(non_singular_index) < mat.T.shape[0]:
+                # print('WARNING: Singular matrices detected and will be ignored in point-in-polygon checks.')
+            inv_mat = np.linalg.inv(non_singular_mat).T
 
             # Assemble vectors for vectorised calculation wrt length of X
             if X.size == 3:
@@ -1306,7 +1316,7 @@ class DSI():
             v0p = np.repeat(v0[:,:,np.newaxis], n_X, axis = 2)
 
             # Transform X based on the origin of each local tetrahedral coordinate system
-            transX = np.einsum('imk,kmj->kij', inv_mat, X.T - v0p)
+            transX = np.einsum('imk,kmj->kij', inv_mat, (X.T - v0p)[non_singular_index])
             
             # Perform point check:
             #     All transformed coordinates has to be between 0 and 1
