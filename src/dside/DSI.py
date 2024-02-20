@@ -1635,3 +1635,335 @@ class DSI():
                 pickle.dump(report_pkl, handle, protocol = pickle.HIGHEST_PROTOCOL)
             print(f'Pickle file saved at: {output_filename}.pkl')
         return None
+    
+def save_ds(ds, project_name):
+    # Processing functions:
+    def convert_shp(shp):
+        import pandas as pd
+        # Setup empty dataframe
+        NAdf = pd.DataFrame(['not_available'])
+
+        # convert shp entries to lists and extract the dataframes
+        ws = shp.pop('ws', NAdf)
+        alpha_spreadsheet = shp.pop('alpha_spreadsheet', NAdf)
+
+        shp['P'] = shp['P'].tolist()
+        shp['simplices'] = shp['simplices'].tolist()
+        shp['edges'] = shp['edges'].tolist()
+        shp['alpha'] = float(shp['alpha'])
+        shp['reg_bounds'] = [i.tolist() for i in shp['reg_bounds']]
+        shp['reg_bounds_val'] = [i.tolist() for i in shp['reg_bounds_val']]
+        shp['size'] = float(shp['size'])
+        if type(shp.get('normalized_P', None)) != type(None):
+            shp['normalized_P'] = shp['normalized_P'].tolist()
+        return shp, ws, alpha_spreadsheet
+
+    def convert_report(report):
+        ss = report['space_size']
+        if type(ss) != str:
+            report['space_size'] = float(ss)
+        else:
+            report['space_size'] = ss
+        max_sample = report['hmv']['max_sample']
+        if type(max_sample) != str:
+            report['hmv']['max_sample'] = max_sample.to_dict()
+        else:
+            report['hmv']['max_sample'] = 'N/A'
+        min_sample = report['hmv']['min_sample']
+        if type(max_sample) != str:
+            report['hmv']['min_sample'] = min_sample.to_dict()
+        else:
+            report['hmv']['min_sample'] = 'N/A'
+        return report
+
+    def convert_all_x(point_in_polygon_results):
+        import numpy as np
+        keys = list(point_in_polygon_results.keys())
+        for k in keys:
+            test_result = point_in_polygon_results[k]
+            test_result['FR'] = np.array(test_result['FR']).tolist()
+            test_result['rmax'] = np.array(test_result['rmax']).tolist()
+            test_result['rmin'] = np.array(test_result['rmin']).tolist()
+            if test_result['space_size'] == 'N/A':
+                pass
+            else:
+                test_result['space_size'] = float(test_result['space_size'])
+            test_result['plusmin'] = np.array(test_result['plusmin']).tolist()
+            
+            if test_result['hmv'] == 'N/A':
+                pass
+            else:
+                max_sample = test_result['hmv']['max_sample']
+                if type(max_sample) != str:
+                    test_result['hmv']['max_sample'] = max_sample.to_dict()
+                else:
+                    test_result['hmv']['max_sample'] = 'N/A'
+                min_sample = test_result['hmv']['min_sample']
+                if type(min_sample) != str:
+                    test_result['hmv']['min_sample'] = min_sample.to_dict()
+                else:
+                    test_result['hmv']['min_sample'] = 'N/A'
+            
+            opt_log = test_result.get('AORopt_log', 'N/A')
+
+            if opt_log == 'N/A':
+                test_result['AORopt_log'] = 'N/A'
+            else:
+                for i in range(len(opt_log)):
+                    opt_log[i]['verts'] = opt_log[i]['verts'].tolist()
+                test_result['AORopt_log'] = opt_log
+            
+            point_in_polygon_results[k] = test_result
+        return point_in_polygon_results
+
+    # Save design space project as a zip file containing many different files including the datasets
+    # make a folder named 'DS' in the current directory
+    import json
+    import os
+    import copy
+    import pandas as pd
+    tmp_project_name = f'__tmp__/{project_name}'
+    os.makedirs(tmp_project_name, exist_ok = True)
+    os.makedirs(tmp_project_name + '/csv', exist_ok = True)
+    os.makedirs(tmp_project_name + '/shp', exist_ok = True)
+    os.makedirs(tmp_project_name + '/point_in_polygon', exist_ok = True)
+
+    saved_ds = copy.deepcopy(ds)
+    if hasattr(saved_ds, 'vnames'):
+        saved_ds.send_output(tmp_project_name + '/ds_report')
+    # Setup empty dataframe
+    NAdf = pd.DataFrame(['not_available'])
+
+    # Save pandas dataframes as csv
+    df = getattr(saved_ds, 'df', NAdf)
+    sat = getattr(saved_ds, 'sat', NAdf)
+    vio = getattr(saved_ds, 'vio', NAdf)
+    vindsp = getattr(saved_ds, 'vindsp', NAdf)
+    df.to_csv(tmp_project_name + '/csv/df.csv')
+    sat.to_csv(tmp_project_name + '/csv/sat.csv')
+    vio.to_csv(tmp_project_name + '/csv/vio.csv')
+    vindsp.to_csv(tmp_project_name + '/csv/vindsp.csv')
+
+    # Save options file
+    dside_opt = getattr(saved_ds, 'opt', {'N/A': 'N/A'})
+    extra_points = dside_opt.pop('extra_points')
+    if type(extra_points) != type([]):
+        pd.DataFrame(extra_points).to_csv(tmp_project_name + '/csv/extra_points.csv')
+    else:
+        NAdf.to_csv(tmp_project_name + '/csv/extra_points.csv')
+    with open(tmp_project_name + '/dside_opt.json', 'w') as f:
+        json.dump(dside_opt, f)
+
+    # Saving constraints file
+    constraints = getattr(saved_ds, 'constraints', 'no_constraints')
+    with open(tmp_project_name + '/constraints.json', 'w') as f:
+        json.dump(constraints, f)
+
+    # Save shp file
+    shp = getattr(saved_ds, 'shp', False)
+    if shp == False:
+        shp = {'N/A': 'N/A'}
+    else:
+        shp, ws, alpha_spreadsheet = convert_shp(shp)
+        ws.to_csv(tmp_project_name + '/shp/ws.csv')
+        alpha_spreadsheet.to_csv(tmp_project_name + '/shp/alpha_spreadsheet.csv')
+    with open(tmp_project_name + '/shp/shp.json', 'w') as f:
+        json.dump(shp, f)
+
+    # Save report file
+    report = getattr(saved_ds, 'report', {'N/A': 'N/A'})
+    report = convert_report(report)
+    with open(tmp_project_name + '/report.json', 'w') as f:
+        json.dump(report, f)
+
+    # Save point_in_polygon files
+    point_in_polygon_results = saved_ds.all_x
+    point_in_polygon_results = convert_all_x(point_in_polygon_results)
+    keys = list(point_in_polygon_results.keys())
+    point_in_polygon_report = {'no_of_checks': len(keys)}
+    with open(tmp_project_name + '/point_in_polygon/point_in_polygon_report.json', 'w') as f:
+        json.dump(point_in_polygon_report, f)
+    for i in range(len(keys)):
+        os.makedirs(tmp_project_name + f'/point_in_polygon/{i+1:06d}', exist_ok = True)
+    folders = os.listdir(tmp_project_name + '/point_in_polygon')
+    for i, k in enumerate(keys):
+        test_result = point_in_polygon_results[k]
+        fs_df = test_result.pop('fs_df')
+        if type(fs_df) == type(None):
+            fs_df = NAdf
+        fs_df.to_csv(tmp_project_name + f'/point_in_polygon/{folders[i]}/fs_df.csv')
+        
+        if test_result['hmv'] == 'N/A':
+            NAdf.to_csv(tmp_project_name + f'/point_in_polygon/{folders[i]}/fs_all_samples.csv')
+        else:
+            if type(test_result['hmv']['fs_all_samples']) != str:
+                fs_all_samples = test_result['hmv'].pop('fs_all_samples')
+                fs_all_samples.to_csv(tmp_project_name + f'/point_in_polygon/{folders[i]}/fs_all_samples.csv')
+            else:
+                NAdf.to_csv(tmp_project_name + f'/point_in_polygon/{folders[i]}/fs_all_samples.csv')
+        with open(tmp_project_name + f'/point_in_polygon/{folders[i]}/test_result.json', 'w') as f:
+            json.dump(test_result, f)
+
+    # Zip up the project folder
+    import zipfile
+    extension_name = '.myDSp'
+    with zipfile.ZipFile(project_name + extension_name, 'w') as zipf:
+        for root, dirs, files in os.walk(tmp_project_name):
+            for file in files:
+                zipf.write(os.path.join(root, file), os.path.relpath(os.path.join(root, file), tmp_project_name))
+
+    # Clean up the project folder
+    import shutil
+    shutil.rmtree('__tmp__', ignore_errors = True)
+    return None
+
+
+def load_ds(project_name):
+    import os
+    import numpy as np
+    import pandas as pd
+    import json
+    from dside import DSI
+
+    # Loading the DSp project
+    tmp_folder = '__tmp__'
+    project_folder = f'{tmp_folder}/{project_name}'
+    os.makedirs(tmp_folder, exist_ok = True)
+
+    # Unzip the project file
+    import zipfile
+    with zipfile.ZipFile(project_name, 'r') as zip_ref:
+        zip_ref.extractall(project_folder)
+
+    NAdf = pd.DataFrame(['not_available'])
+
+    # Creating DSI instance
+    df = pd.read_csv(project_folder + '/csv/df.csv', index_col = 0)
+    ds = DSI(df)
+
+    # Loading data files
+    sat = pd.read_csv(project_folder + '/csv/sat.csv', index_col = 0)
+    vio = pd.read_csv(project_folder + '/csv/vio.csv', index_col = 0)
+    vindsp = pd.read_csv(project_folder + '/csv/vindsp.csv', index_col = 0)
+    if (sat.to_numpy() == NAdf.to_numpy()).all():
+        pass
+    else:
+        ds.sat = sat
+    if (vio.to_numpy() == NAdf.to_numpy()).all():
+        pass
+    else:
+        ds.vio = vio
+    if (vindsp.to_numpy() == NAdf.to_numpy()).all():
+        pass
+    else:
+        ds.vindsp = vindsp
+
+    # dside options loading
+    with open(project_folder + '/dside_opt.json', 'r') as f:
+        ds.opt = json.load(f)
+    ds.opt['extra_points'] = pd.read_csv(project_folder + '/csv/extra_points.csv', index_col = 0).to_numpy()
+    if ds.opt['extra_points'].shape == (1, 1):
+        ds.opt['extra_points'] = []
+    if ds.opt.get('vnames', None) != None:
+        ds.vnames = ds.opt['vnames']
+
+    # Loading constraints file
+    with open(project_folder + '/constraints.json', 'r') as f:
+        constraints = json.load(f)
+    if type(constraints) == type({}):
+        ds.constraints = constraints
+
+    # Converting back the shp files
+    with open(project_folder + '/shp/shp.json', 'r') as f:
+        shp = json.load(f)
+    if shp.get('N/A', False) == 'N/A':
+        shp = None
+    else:
+        shp['P'] = np.array(shp['P'])
+        shp['simplices'] = np.array(shp['simplices'])
+        shp['edges'] = np.array(shp['edges'])
+        shp['reg_bounds'] = [np.array(i) for i in shp['reg_bounds']]
+        shp['reg_bounds_val'] = [np.array(i) for i in shp['reg_bounds_val']]
+        if type(shp.get('normalized_P', None)) != type(None):
+            shp['normalized_P'] = np.array(shp['normalized_P'])
+        shp['ws'] = pd.read_csv(project_folder + '/shp/ws.csv', index_col = 0)
+        shp['alpha_spreadsheet'] = pd.read_csv(project_folder + '/shp/alpha_spreadsheet.csv', index_col = 0)
+        ds.shp = shp
+
+    # Setting ds.space_size
+    if hasattr(ds, 'shp'):
+        ds.space_size = ds.shp['size']
+    else:
+        ds.space_size = None
+
+    # Loading report files
+    with open(project_folder + '/report.json', 'r') as f:
+        report = json.load(f)
+    max_sample = report['hmv']['max_sample']
+    if type(max_sample) == type({}):
+        max_sample = pd.DataFrame(max_sample)
+    else:
+        max_sample = '-'
+    min_sample = report['hmv']['min_sample']
+    if type(min_sample) == type({}):
+        min_sample = pd.DataFrame(min_sample)
+    else:
+        min_sample = '-'
+    report['hmv']['max_sample'] = max_sample
+    report['hmv']['min_sample'] = min_sample
+    ds.report = report
+
+    # Loading point_in_polygon files
+    test_folders = [f for f in os.listdir(project_folder + '/point_in_polygon') if os.path.isdir(os.path.join(project_folder + '/point_in_polygon', f))]
+    all_x = {}
+    if len(test_folders) == 0:
+        pass
+    else:
+        for i, folder in enumerate(test_folders):
+            with open(project_folder + f'/point_in_polygon/{folder}/test_result.json', 'r') as f:
+                test_result = json.load(f)
+            k = str(test_result['x'])
+
+            if type(test_result['FR']) != type(''):
+                test_result['FR'] = np.array(test_result['FR'])
+            if type(test_result['rmax']) != type(''):
+                test_result['rmax'] = np.array(test_result['rmax'])
+            if type(test_result['rmin']) != type(''):
+                test_result['rmin'] = np.array(test_result['rmin'])
+            if type(test_result['plusmin']) != type(''):
+                test_result['plusmin'] = np.array(test_result['plusmin'])
+            
+            fs_df = pd.read_csv(project_folder + f'/point_in_polygon/{folder}/fs_df.csv', index_col = 0)
+            if (fs_df.to_numpy() == NAdf.to_numpy()).all():
+                fs_df = None
+            test_result['fs_df'] = fs_df
+
+            if test_result['hmv'] == 'N/A':
+                pass
+            else:
+                max_sample = test_result['hmv']['max_sample']
+                if type(max_sample) != str:
+                    test_result['hmv']['max_sample'] = pd.DataFrame(max_sample)
+                min_sample = test_result['hmv']['min_sample']
+                if type(min_sample) != str:
+                    test_result['hmv']['min_sample'] = pd.DataFrame(min_sample)
+                fs_all_samples = pd.read_csv(project_folder + f'/point_in_polygon/{folder}/fs_all_samples.csv', index_col = 0)
+                if (fs_all_samples.to_numpy() == NAdf.to_numpy()).all():
+                    fs_all_samples = '-'
+                test_result['hmv']['fs_all_samples'] = fs_all_samples
+                
+            
+            
+            opt_log = test_result.get('AORopt_log', 'N/A')
+            if opt_log == 'N/A':
+                pass
+            else:
+                for i in range(len(opt_log)):
+                    opt_log[i]['verts'] = np.array(opt_log[i]['verts'])
+                test_result['AORopt_log'] = opt_log
+            all_x[k] = test_result
+    ds.all_x = all_x
+
+    import shutil
+    shutil.rmtree('__tmp__')
+    return ds
