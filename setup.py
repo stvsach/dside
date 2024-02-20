@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-__version__ = '2.2.1'
+__version__ = '2.3.0'
 short_description = 'Design space identification tool for plotting and analysing design'+\
     ' spaces (2D and 3D).'
 with open("README.md", "r") as fh:
@@ -30,5 +30,6 @@ setup(
     install_requires=['numpy',
                       'matplotlib',
                       'pandas',
+                      'scipy',
                      ]              # Install other dependencies if any
 )
