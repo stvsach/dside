@@ -331,7 +331,9 @@ class DSI():
         constraints: {'output_name1': [lbd1, ubd1], 'output_name2': [lbd1, ubd2], ...}
         """
         import pandas as pd
-        data = self.df
+        if 'SatFlag' in list(self.df.columns):
+            self.df.pop('SatFlag')
+        data = self.df.copy()
         self.constraints = constraints
         sat = data.copy()
         for i in list(constraints.keys()):
