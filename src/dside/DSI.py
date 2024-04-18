@@ -791,7 +791,7 @@ class DSI():
             volume = 0
             for v in shp['P'][shp['simplices']]:
                 volume += np.abs(np.dot(v[0] - v[3], np.cross(v[1] - v[3], v[2] - v[3])))/6
-            shp['size'] = volume
+            shp['size'] = self.mm_size_norm(volume, self.normP)
         else:
             shp = self.classify_regions2D(shp)
             P = shp['P']
@@ -806,7 +806,7 @@ class DSI():
             a, b, c = np.sqrt([a, b, c])
             s = (a + b + c)*0.5
             area = np.sqrt(s*(s - a)*(s - b)*(s - c)) # area from Heron's formula
-            shp['size'] = np.sum(area)
+            shp['size'] = self.mm_size_norm(np.sum(area), self.normP)
     
         if vpoints.shape[0] == 0:
             self.vindsp = None
