@@ -900,7 +900,7 @@ class DSI():
             }
         return shp
 
-    
+
     def classify_regions2D(self, shp = None):
         """
         Classify number of regions and their outer lines
@@ -909,7 +909,7 @@ class DSI():
         import pandas as pd
 
         # Unpack shp
-        if type(shp) == None:
+        if shp is None:
             shp = self.shp
         edges = shp['edges']
         P = shp['P']
@@ -932,9 +932,9 @@ class DSI():
             bounds = []
             # find a point which have not been visited yet
             cur_idx = ws[ws['visit'] == False].index[0]
-            ws.loc[cur_idx, 'visit'] = True # set it to be visited
-            ws.loc[cur_idx, 'region'] = reg # categorise to region reg
-            
+            ws.loc[cur_idx, 'visit'] = True  # set it to be visited
+            ws.loc[cur_idx, 'region'] = reg  # categorise to region reg
+
             # taking both directions of the line to search neighbouring vertices
             current_vert1 = int(ws.loc[cur_idx][0])
             current_vert2 = int(ws.loc[cur_idx][1])
@@ -947,7 +947,7 @@ class DSI():
             empty_v1 = False
             empty_v2 = False
             change_init_flag = False
-            while change_init_flag == False: # while v1 and v2 are not empty
+            while not change_init_flag:  # while v1 and v2 are not empty
                 # make working_sheet for easier manipulation
                 w_s = ws[ws['visit'] == False].copy()
 
@@ -963,52 +963,52 @@ class DSI():
 
                 # check if v1 is empty
                 if v1.shape[0] != 0:
-                    ws.loc[v1.index[0], 'visit'] = True # set it to be visited
-                    ws.loc[v1.index[0], 'region'] = reg # categorise to region reg
-                    next_vert1 = v1.T[v1.T != current_vert1].dropna().iloc[0, 0] # get next vertex
-                    current_vert1 = int(next_vert1)
-                    bounds.insert(0, current_vert1) # record boundary
+                    ws.loc[v1.index[0], 'visit'] = True  # set it to be visited
+                    ws.loc[v1.index[0], 'region'] = reg  # categorise to region reg
+                    next_vert1 = v1.T[v1.T != current_vert1].dropna()
+                    if not next_vert1.empty:
+                        current_vert1 = int(next_vert1.iloc[0, 0])
+                        bounds.insert(0, current_vert1)  # record boundary
+                    else:
+                        empty_v1 = True
                 else:
                     empty_v1 = True
 
                 # check if v2 is empty
                 if v2.shape[0] != 0:
-                    ws.loc[v2.index[0], 'visit'] = True # set it to be visited
-                    ws.loc[v2.index[0], 'region'] = reg # categorise to region reg
-                    next_vert2 = v2.T[v2.T != current_vert2].dropna().iloc[0, 0] # get next vertex
-                    current_vert2 = int(next_vert2)
-                    bounds.append(current_vert2) # record boundary
+                    ws.loc[v2.index[0], 'visit'] = True  # set it to be visited
+                    ws.loc[v2.index[0], 'region'] = reg  # categorise to region reg
+                    next_vert2 = v2.T[v2.T != current_vert2].dropna()
+                    if not next_vert2.empty:
+                        current_vert2 = int(next_vert2.iloc[0, 0])
+                        bounds.append(current_vert2)  # record boundary
+                    else:
+                        empty_v2 = True
                 else:
                     empty_v2 = True
-                
+
                 # if both v1 and v2 are empty, set change_init_flag to true
-                if empty_v2 == True:
-                    if empty_v1 == True:
-                        change_init_flag = True
-                    else:
-                        pass
-                else:
-                    pass
+                if empty_v1 and empty_v2:
+                    change_init_flag = True
+
             # Check if the last entry in bounds is the same as first
             if bounds[-1] != bounds[0]:
-                if bounds[-2] == bounds[0]: # check if second last is same as first
-                    bounds = bounds[:-1]    # if yes, slice boundary
-                else: # else, there may be something wrong, print warning
+                if bounds[-2] == bounds[0]:  # check if second last is same as first
+                    bounds = bounds[:-1]  # if yes, slice boundary
+                else:  # else, there may be something wrong, print warning
                     print('WARNING: BOUNDARY FORMED MAY NOT BE CLOSED')
-            reg_bounds.append(np.array(bounds)) # compile boundary defined
+            reg_bounds.append(np.array(bounds))  # compile boundary defined
 
         # Bounds based on regions
-        ws['region'].astype('int')
+        ws['region'] = ws['region'].astype('int')
         reg_bounds_val = [P[i] for i in reg_bounds]
 
-        shp.update(
-            {
+        shp.update({
             'ws': ws,
-            'reg_bounds': reg_bounds, 
+            'reg_bounds': reg_bounds,
             'reg_bounds_val': reg_bounds_val,
             'no_reg': len(reg_bounds),
-            }
-        )
+        })
         return shp
 
     def alphashape_3D(self, P, alpha):
