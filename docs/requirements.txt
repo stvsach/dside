@@ -1,4 +1,5 @@
-m2r2
+m2r2==0.3.3.post2
+docutils==0.19
 nbsphinx==0.9.4
 pandoc==2.3
 lxml[html_clean] == 5.2.2
