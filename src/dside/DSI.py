@@ -162,8 +162,8 @@ class DSI():
         self.r = None
         
         # Set default color map for heat map plot
-        inferno_modified = plt.cm.get_cmap('inferno', 256)
-        gray_modified    = plt.cm.get_cmap('gray', 256)
+        inferno_modified = plt.get_cmap('inferno', 256)
+        gray_modified    = plt.get_cmap('gray', 256)
         self.inferno80   = ListedColormap(inferno_modified(np.linspace(0, 0.8, 256)))
         self.gray80      = ListedColormap(gray_modified(np.linspace(0, 0.85, 256)))
         self.cmap_opt = {'inferno80': self.inferno80, 'gray80': self.gray80}
@@ -466,6 +466,7 @@ class DSI():
                     vmax[1] + limfactor*vrange[1]])
                 ax.set_zlim([vmin[2] - limfactor*vrange[2],\
                     vmax[2] + limfactor*vrange[2]])
+                ax.set_box_aspect(None, zoom = 0.85)
         
         
         # Labels
@@ -620,7 +621,7 @@ class DSI():
             norm = matplotlib.colors.Normalize(vmin = cmapvmin, vmax = cmapvmax)
             if opt['mycmap'] != None:
                 if type(opt['mycmap']) == str:
-                    cmap = plt.cm.get_cmap(opt['mycmap'], 256)
+                    cmap = plt.get_cmap(opt['mycmap'], 256)
                 else:
                     cmap = opt['mycmap']
             else:
@@ -649,7 +650,7 @@ class DSI():
                         facecolors = opt['satfill'], label = opt['satlabel'], color = opt['satcolor'], alpha = opt['alpha'], 
                         zorder = opt['satzorder'])
                 else:
-                    self.cbar = fig.colorbar(sm, label = opt['hmvlabel'], location = opt['cbarloc'], orientation = opt['cbaror'], pad = opt['cbarpad'], extend = opt['cmapext'], shrink = opt['cbarshrink'], fraction = opt['cbarfraction'])
+                    self.cbar = fig.colorbar(sm, ax = ax, label = opt['hmvlabel'], location = opt['cbarloc'], orientation = opt['cbaror'], pad = opt['cbarpad'], extend = opt['cmapext'], shrink = opt['cbarshrink'], fraction = opt['cbarfraction'])
                     if opt['cmapext'] == 'both':
                         self.cbar.cmap.set_over(opt['cmapextmax'])
                         self.cbar.cmap.set_under(opt['cmapextmin'])
@@ -919,7 +920,7 @@ class DSI():
         # Create worksheet
         ws = pd.DataFrame(edges[edges[:, 0].argsort()])
         ws['visit'] = False
-        ws['region'] = np.NaN
+        ws['region'] = np.nan
 
         change_init_flag = False
         reg = 0
@@ -1139,7 +1140,7 @@ class DSI():
         # Create worksheet
         ws = pd.DataFrame(sorted_tri)
         ws['visit'] = False
-        ws['region'] = np.NaN
+        ws['region'] = np.nan
 
         # Connected triangles must share at least one pair of vertices
         ws['p1'] = [str(i) for i in sorted_tri[:, triComb][:, 0, :]]
@@ -1436,7 +1437,7 @@ class DSI():
             # ----- KPIs ----- #
             rmax = np.array(verts).max(axis = 0)
             rmin = np.array(verts).min(axis = 0)
-            fs_size = (rmax - rmin).prod()
+            fs_size = self.mm_size_norm((rmax - rmin).prod(), self.normP)
             plusmin = (rmax - rmin)/2
 
             # ----- Heat map variable ----- #
