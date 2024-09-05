@@ -3,15 +3,15 @@ Dataset name: example_2D_2
 
 No of samples: 1024
 Variables/parameters varied: 
-DI1
-DI2
+SV1
+SV2
 
 Constraints used: 
 KPI1         Lower bound:          1   Upper bound:      1e+20
 KPI2         Lower bound:     -1e+20   Upper bound:         70
 
 # -------------------------- RESULTS -------------------------- #
-Design space size:  86.520386
+Design space size:   0.216724
 Number of regions:          2
 Number of samples in DSp: 260
 
@@ -29,9 +29,9 @@ Detailed minimum point:
 
 # ------------------------------ Acceptable Operating Region 001 ------------------------------ #
 AOR point: 
-DI1:  -5.000000 +-   1.757315 Range: -6.757315 - -3.242685 (3.5146307945251465)
-DI2:   0.000000 +-   1.757315 Range: -1.757315 - 1.757315 (3.5146307945251465)
-AOR size:  12.352630
+SV1:  -5.000000 +-   1.757315 Range: -6.757315 - -3.242685 (3.5146307945251465)
+SV2:   0.000000 +-   1.757315 Range: -1.757315 - 1.757315 (3.5146307945251465)
+AOR size:   0.030942
 
 Number of samples inside AOR:1024
 Average None:-         

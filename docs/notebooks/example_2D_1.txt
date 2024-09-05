@@ -3,15 +3,15 @@ Dataset name: example_2D_1
 
 No of samples: 1024
 Variables/parameters varied: 
-DI1
-DI2
+SV1
+SV2
 
 Constraints used: 
 KPI1         Lower bound:        -50   Upper bound:      1e+20
 KPI2         Lower bound:     -1e+20   Upper bound:        100
 
 # -------------------------- RESULTS -------------------------- #
-Design space size: 240.961456
+Design space size:   0.603582
 Number of regions:          1
 Number of samples in DSp: 641
 
