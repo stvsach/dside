@@ -58,12 +58,12 @@ def plot_DSp(shp, opt = {}, ax = None):
     if dim == 2:
         for i in range(len(shp['reg_bounds_val'])):
             if i == 0:
-                plt.plot(*zip(*shp['reg_bounds_val'][i]),\
+                ax.plot(*zip(*shp['reg_bounds_val'][i]),\
                     linewidth = opt['dspwidth'], linestyle = opt['dspstyle'],\
                     color = opt['dspcolor'], label = opt['dsplabel'],\
                     zorder = opt['dspzorder'], solid_capstyle = 'round')
             else:
-                plt.plot(*zip(*shp['reg_bounds_val'][i]),\
+                ax.plot(*zip(*shp['reg_bounds_val'][i]),\
                     linewidth = opt['dspwidth'], linestyle = opt['dspstyle'],\
                     color = opt['dspcolor'],\
                     zorder = opt['dspzorder'], solid_capstyle = 'round')
